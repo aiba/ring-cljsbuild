@@ -1,7 +1,8 @@
 (ns ring-cljsbuild.test.server
   (:require [clojure.tools.logging :as log]
             [hiccup.core :as hiccup]
-            [hiccup.page :as hpage]
+            [hiccup.page :as hpage :refer [include-js]]
+            [hiccup.element :refer [javascript-tag]]
             [org.httpkit.server :as httpserver]
             [ring.util.response :as response]
             (ring.middleware stacktrace)
@@ -18,11 +19,17 @@
    [:html
     [:head]
     [:body
-     "Hello"]]))
+     "Hello"
+     (include-js "/cljsbuild/out/goog/base.js")
+     (include-js "/cljsbuild/main.js")
+     (javascript-tag "goog.require('ring_cljsbuild.test.client');")]]))
 
 (defn handler []
   (-> #'app
-      (wrap-cljsbuild "/cljsbuild/" {:foo "bar"})
+      (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-test"]
+                                     :incremental false
+                                     :assert true
+                                     :compiler {:optimizations :none}})
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
 (defonce stopper* (atom nil))
