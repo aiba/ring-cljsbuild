@@ -1,3 +1,5 @@
 (ns ring-cljsbuild.test.client)
 
-(. js/window (alert "hello"))
+(set! (.-innerHTML (.getElementById js/document "main"))
+      "hello from clojurescript")
+
