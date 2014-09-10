@@ -19,7 +19,7 @@
    [:html
     [:head]
     [:body
-     "Hello"
+     [:div#main "loading..."]
      (include-js "/cljsbuild/out/goog/base.js")
      (include-js "/cljsbuild/main.js")
      (javascript-tag "goog.require('ring_cljsbuild.test.client');")]]))
@@ -27,7 +27,7 @@
 (defn handler []
   (-> #'app
       (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-test"]
-                                     :incremental false
+                                     :incremental true
                                      :assert true
                                      :compiler {:optimizations :none}})
       (ring.middleware.stacktrace/wrap-stacktrace)))
