@@ -11,21 +11,23 @@
   (log/info "compiling...")
   (let [emptydir (.getCanonicalPath (doto (io/file tmpdir "empty")
                                       (.mkdir)))]
+    ;; The swap also prevents compiler from running on simultaneous requests.
     (swap! mtimes
-           (compiler/run-compiler (:source-paths opts)
-                                  emptydir ;; TODO: support crossover?
-                                  []       ;; TODO: support crossover?
-                                  (merge  {:libs []
-                                           :externs []}
-                                          (:compiler opts)
-                                          {:output-to (str tmpdir "/main.js")
-                                           :output-dir (str tmpdir "/out")})
-                                  nil ;; notify-commnad
-                                  (:incremental opts)
-                                  (:assert opts)
-                                  @mtimes
-                                  false ;; don't run forever watching the build
-                                  ))))
+           (fn [last-mtimes]
+             (compiler/run-compiler (:source-paths opts)
+                                    emptydir ;; TODO: support crossover?
+                                    []       ;; TODO: support crossover?
+                                    (merge  {:libs []
+                                             :externs []}
+                                            (:compiler opts)
+                                            {:output-to (str tmpdir "/main.js")
+                                             :output-dir (str tmpdir "/out")})
+                                    nil ;; notify-commnad
+                                    (:incremental opts)
+                                    (:assert opts)
+                                    last-mtimes
+                                    false ;; don't run forever watching the build
+                                    )))))
 
 (defn respond-with-compiled-cljs [path opts tmpdir mtimes]
   (compile! opts tmpdir mtimes)
@@ -44,3 +46,4 @@
       (if (.startsWith (:uri req) path)
         (respond-with-compiled-cljs (.substring (:uri req) (.length path)) opts tmpdir mtimes)
         (handler req)))))
+
