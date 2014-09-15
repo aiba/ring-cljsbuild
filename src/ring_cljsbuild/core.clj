@@ -4,11 +4,12 @@
             [cljsbuild.compiler :as compiler]
             [clojure.java.io :as io]))
 
-;; TODO: only recompile when we need to?
 ;; TODO: better tempfile?
+;; TODO: "/main.cljs" should be arg, not hard coded
+;; TODO: use with-out-str wrapping actual compile call to get it to log to tools.logging
+;;       rather than stdout?
 
 (defn compile! [opts tmpdir mtimes]
-  (log/info "compiling...")
   (let [emptydir (.getCanonicalPath (doto (io/file tmpdir "empty")
                                       (.mkdir)))]
     ;; The swap also prevents compiler from running on simultaneous requests.
