@@ -3,13 +3,13 @@
   <groupId>ring-cljsbuild</groupId>
   <artifactId>ring-cljsbuild</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.1-SNAPSHOT</version>
   <name>ring-cljsbuild</name>
   <description/>
   <scm>
     <connection>scm:git:git://github.com//.git</connection>
     <developerConnection>scm:git:ssh://git@github.com//.git</developerConnection>
-    <tag>86871220515a67569ed624193477f4136e4fec7f
+    <tag>adcc8fe400a7ff9a3845071fc44deff0c8c2a716
 </tag>
     <url>https://github.com//</url>
   </scm>
