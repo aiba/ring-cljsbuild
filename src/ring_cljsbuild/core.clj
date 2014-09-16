@@ -9,6 +9,8 @@
 ;; TODO: use with-out-str wrapping actual compile call to get it to log to tools.logging
 ;;       rather than stdout?
 
+(def compile-lock* (Object.))
+
 (defn compile! [opts tmpdir mtimes]
   (let [emptydir (.getCanonicalPath (doto (io/file tmpdir "empty")
                                       (.mkdir)))]
@@ -31,10 +33,11 @@
                                     )))))
 
 (defn respond-with-compiled-cljs [path opts tmpdir mtimes]
-  (compile! opts tmpdir mtimes)
-  (-> (slurp (io/file tmpdir path))
-      (response/response)
-      (response/content-type "application/javascript")))
+  (locking compile-lock*
+    (compile! opts tmpdir mtimes)
+    (-> (slurp (io/file tmpdir path))
+        (response/response)
+        (response/content-type "application/javascript"))))
 
 (defn wrap-cljsbuild [handler path opts]
   (let [tmp-prefix "/tmp/ring-cljsbuild"
