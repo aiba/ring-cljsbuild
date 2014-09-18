@@ -6,6 +6,7 @@
   :profiles {:dev {:plugins [[cider/cider-nrepl "0.7.0"]]
                    :source-paths ["src" "src-test"]
                    :dependencies [[org.clojure/clojurescript "0.0-2322"]
+                                  [digest "1.4.4"]
                                   [ring/ring-core "1.3.1"]
                                   [ring/ring-devel "1.3.1"]
                                   [hiccup "1.0.5"]
