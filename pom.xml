@@ -9,7 +9,7 @@
   <scm>
     <connection>scm:git:git://github.com//.git</connection>
     <developerConnection>scm:git:ssh://git@github.com//.git</developerConnection>
-    <tag>ee64b937b2ff388441124b6c3396e164f79e6f3f
+    <tag>d47ead4e757c57f0eedcb2a23b6067a7e2cf1be4
 </tag>
     <url>https://github.com//</url>
   </scm>
@@ -75,6 +75,12 @@
       <groupId>org.clojure</groupId>
       <artifactId>clojurescript</artifactId>
       <version>0.0-2322</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>digest</groupId>
+      <artifactId>digest</artifactId>
+      <version>1.4.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
