@@ -56,7 +56,7 @@ __TODO: make an entire self-contained example that can be super easily git clone
 ## Implementation Issues
 
 * The use of files in "/tmp/" is sketchy and it assumes a unix filesystem. This should
-  be cleaned up.
+  be cleaned up.  Should we be putting this stuff in target/ring-cljsbuild?
 * Crossovers are not supported (but these seem to be a deprecated concept anyway). The
   use of `emptydir` as a crossovers arg to `run-compiler` is particularly sketchy.
 * The compiler prints to stdout, but arguably this is an issue with the cljsbuild
