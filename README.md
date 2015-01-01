@@ -26,22 +26,6 @@ format for specifying compiler options is the same.
   delay feedback about a compiler error. (The flip side of this is that it can reduce
   unecessary compiles).
 
-## Example
-
-The [basic example server](example-projects/basic/src-clj/basic/server.clj) shows
-having a ring webserver and clojurescript compiler in 1 file.
-
-You can try it out:
-
-```
-$ git clone https://github.com/aiba/ring-cljsbuild.git
-$ cd ring-cljsbuild/example-projects/basic
-$ lein run -m basic.server 8888
-```
-
-Now visit http://localhost:8888/. As you edit either `server.clj` or
-`client.cljs` and reload the page, your changes will be automatically recompiled.
-
 ## Usage
 
 Add ring-cljsbuild as a dependency to `project.clj`. As with lein-cljsbuild, you will
@@ -53,7 +37,7 @@ also want to add a specific clojurescript version dependency.
                  [ring-cljsbuild "0.2.0"]])
 ```
 
-In your ring server, require `wrap-cljsbuild` middleware.
+Next require `wrap-cljsbuild` middleware.
 
 ```clj
 (ns my-ring-server
@@ -71,9 +55,11 @@ Then add a call to `wrap-cljsbuild`.
                                                 :cache-analysis true}})))
 ```
 
-The first argument to `wrap-cljsbuild` is the URL prefix from which the compiled
-javascript will be served. In the example above, the webserver will respond to requests
-for "/cljsbuild/main.js" with the output of the clojurescript compiler.
+The first arg to `wrap-cljsbuild` is the URL prefix from which the compiled javascript
+will be served. Here the webserver will respond to "GET /cljsbuild/main.js" with the
+output of the clojurescript compiler.
+
+The second arg is the same build spec that lein-cljsbuild uses.
 
 Finally, render a page that references the javascript.
 
@@ -85,13 +71,28 @@ Finally, render a page that references the javascript.
      (include-js "/cljsbuild/main.js")]))
 ```
 
+## Example
+
+The [basic example server](example-projects/basic/src-clj/basic/server.clj) shows
+having a ring webserver and clojurescript compiler in 1 file.
+
+You can try it out:
+
+```
+$ git clone https://github.com/aiba/ring-cljsbuild.git
+$ cd ring-cljsbuild/example-projects/basic
+$ lein run -m basic.server 8888
+```
+
+Now visit http://localhost:8888/. As you edit either `server.clj` or
+`client.cljs` and reload the page, your changes will be automatically recompiled.
+
 ## Advanced compilation
 
-One of the cool things about this approach is that you can dynamically serve optimized
-compiles and unomptimized compiles from the same webserver, via multiple calls to
-wrap-cljsbuild with different URL prefixes. Then you can decide in the request handler
-whether to serve optimized or unoptimzed, perhaphs by looking at a URL parameter. (TODO:
-provide example of this).
+You can dynamically serve optimized compiles and unomptimized compiles from the same
+webserver, via multiple calls to wrap-cljsbuild with different URL prefixes. Then you
+can decide in the request handler whether to serve optimized or unoptimzed, perhaphs by
+looking at a URL parameter. (TODO: provide example of this).
 
 ## Implementation Issues
 
