@@ -1,4 +1,9 @@
 
+# 0.3.0 (2015-01-02)
+
+* Store temp build files in target/ring-cljsbuild instead of /tmp/ring-cljsbuild.
+* Better documentation.
+
 # 0.2.1 (2015-01-01)
 
 * Example server uses :cache-analysis true for big speedup.

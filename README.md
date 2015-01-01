@@ -1,51 +1,24 @@
 # ring-cljsbuild
 
-Ring middleware that compiles ClojureScript and serves the JS directly from your
-ring-clojure webserver.
+Ring middleware interface to cljsbuild. It compiles ClojureScript and serves the JS
+directly from your ring-clojure webserver, instead of requiring a separate lein command
+and separate JVM as [lein-cljsbuild](https://github.com/emezeske/lein-cljsbuild) does.
 
-This is an alternative to runing a separate command and separate JVM with
-[lein-cljsbuild](https://github.com/emezeske/lein-cljsbuild).
+Under the hood, it uses the same cljsbuild library that lein-cljsbuild uses, so the
+format for specifying compiler options is the same.
 
 ## Benefits (vs. lein-cljsbuild)
 
-* No extra JVM process / terminal window
-* Make cljsbuild configuration changes without any JVM restarts.
-* cljs compiler errors logged in same place as server-side errors, so there's only 1 log
-  file to monitor.  (We use tools.logging).
-* Blocks HTTP requests until cljs compiler is done, so you can be certain you have
+* No extra JVM process / terminal window.
+* cljsbuild configuration changes do not require a JVM restart.
+* cljs compiler errors logged in same place as server-side errors, so there are fewer
+  terminal windows to monitor.
+* HTTP requests are blocked until cljs compiler is done, so you can be certain you have
   latest js.
 * cljs compiler options can live in same file that serves and calls the resultant js.
-  See e.g. [server.clj](src-test/ring_cljsbuild/test/server.clj).
+  See e.g. [server.clj](example-projects/basic/src-clj/basic/server.clj).
 
-## Example
-
-First add ring-cljsbuild as a dependency to `project.clj`.
-
-```clj
-(defproject ring-cljsbuild-example "0.0.1"
-  :dependencies [[ring-cljsbuild "0.2.0"]])
-```
-
-As with lein-cljsbuild, you should add an explicit ClojureScript dependency as well:
-
-```clj
-:dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
-```
-
-The ClojureScript compiler is configured and served using
-[ring middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware), all in
-the same file as your main ring webserver. The following example is a complete webserver
-that serves compiled clojurescript:
-
-__TODO: make an entire self-contained example that can be super easily git cloned and
-    started up.___
-
-```clj
-(ns ring-cljsbuild.test.server
-  (:require
-```
-
-## Drawbacks of this approach
+## Drawbacks
 
 * It slightly bloats the server because it adds all the ClojureScript compiler code as a
   dependency.
@@ -53,10 +26,77 @@ __TODO: make an entire self-contained example that can be super easily git clone
   delay feedback about a compiler error. (The flip side of this is that it can reduce
   unecessary compiles).
 
+## Example
+
+The [basic example server.clj](example-projects/basic/src-clj/basic/server.clj) shows
+having a ring webserver and clojurescript compiler in 1 file.
+
+You can try it out:
+
+```
+$ git clone https://github.com/aiba/ring-cljsbuild.git
+$ cd ring-cljsbuild/example-projects/basic
+$ lein run -m basic.server 8888
+```
+
+Now visit http://localhost:8888/. As you edit either `server.clj` or
+`client.cljs` and reload the page, your changes will be automatically recompiled.
+
+## Usage
+
+Add ring-cljsbuild as a dependency to `project.clj`. As with lein-cljsbuild, you will
+also want to add a specific clojurescript version dependency.
+
+```clj
+(defproject ring-cljsbuild-example "0.0.1"
+:dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
+               [ring-cljsbuild "0.2.0"]])
+```
+
+Next require `wrap-cljsbuild` middleware.
+
+```
+(ns my-ring-server
+  (:require [[ring-cljsbuild.core :refer [wrap-cljsbuild]]]))
+```
+
+Then add a ring middleware call to `wrap-cljsbuild`.
+
+```
+(def app
+  (-> #'handler
+  (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-cljs"]
+  :incremental true
+  :compiler {:optimizations :none
+  :cache-analysis true}})))
+```
+
+The first argument to `wrap-cljsbuild` is the URL prefix from which the compiled
+javascript will be served. In the example above, the webserver will respond to requests
+for "/cljsbuild/main.js" with the output of the clojurescript compiler.
+
+Finally, render a page that references the javascript.
+
+```
+(defn render-index [req]
+  (html5
+    [:body
+     (include-js "/cljsbuild/out/goog/base.js")
+     (include-js "/cljsbuild/main.js")]))
+```
+
+That's it!
+
+## Advanced compilation
+
+One of the cool things about this approach is that you can dynamically serve optimized
+compiles and unomptimized compiles from the same webserver, via multiple calls to
+wrap-cljsbuild with different URL prefixes. Then you can decide in the request handler
+whether to serve optimized or unoptimzed, perhaphs by looking at a URL parameter. (TODO:
+provide example of this).
+
 ## Implementation Issues
 
-* The use of files in "/tmp/" is sketchy and it assumes a unix filesystem. This should
-  be cleaned up.  Should we be putting this stuff in target/ring-cljsbuild?
 * Crossovers are not supported (but these seem to be a deprecated concept anyway). The
   use of `emptydir` as a crossovers arg to `run-compiler` is particularly sketchy.
 * The compiler prints to stdout, but arguably this is an issue with the cljsbuild
@@ -64,4 +104,9 @@ __TODO: make an entire self-contained example that can be super easily git clone
   this in `with-out-str`.
 * The `:output-to` filename is hard-coded to `"main.js"`. Perhaps this should be
   configurable.
+
+## License
+
+Source Copyright © Aaron Iba, 2014-2015.
+Released under the MIT license, see [LICENSE](/LICENSE).
 
