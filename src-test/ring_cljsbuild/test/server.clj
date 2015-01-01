@@ -1,15 +1,14 @@
 (ns ring-cljsbuild.test.server
-  (:require [clojure.tools.logging :as log]
-            [hiccup.core :as hiccup]
-            [hiccup.page :as hpage :refer [include-js]]
+  (:require [hiccup.core :as hiccup]
+            [hiccup.page :refer [doctype include-js]]
             [hiccup.element :refer [javascript-tag]]
             [org.httpkit.server :as httpserver]
             [ring.util.response :as response]
-            (ring.middleware stacktrace params keyword-params)
+            (ring.middleware stacktrace params keyword-params reload)
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
-(defn render-html5 [& elts]
-  (-> (hiccup/html (hpage/doctype :html5) (list* elts))
+(defn render-html5 [htmlv]
+  (-> (hiccup/html (doctype :html5) htmlv)
       (response/response)
       (response/content-type "text/html")
       (response/charset "utf-8")))
@@ -27,7 +26,7 @@
        (when dev? (javascript-tag "goog.require('ring_cljsbuild.test.client');"))
        (javascript-tag "ring_cljsbuild.test.client.main();")]])))
 
-(defn handler []
+(def handler
   (-> #'app
       (wrap-cljsbuild "/cljsbuild/dev/" {:source-paths ["src-test"]
                                          :incremental true
@@ -41,16 +40,9 @@
                                                     :pretty-print false}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
+      (ring.middleware.reload/wrap-reload)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
-(defonce stopper* (atom nil))
+(defn start-server! []
+  (httpserver/run-server #'handler {:port 7000}))
 
-(defn restart! []
-  (swap! stopper*
-         (fn [s]
-           (when s (s))
-           (httpserver/run-server (handler) {:port 7000}))))
-
-(comment
-  (restart!)
-  )
