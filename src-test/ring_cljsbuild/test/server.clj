@@ -2,9 +2,9 @@
   (:require [hiccup.core :as hiccup]
             [hiccup.page :refer [doctype include-js]]
             [hiccup.element :refer [javascript-tag]]
-            [org.httpkit.server :as httpserver]
             [ring.util.response :as response]
             (ring.middleware stacktrace params keyword-params reload)
+            [ring.adapter.jetty :refer [run-jetty]]
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
 (defn render-html5 [htmlv]
@@ -43,6 +43,7 @@
       (ring.middleware.reload/wrap-reload)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
-(defn start-server! []
-  (httpserver/run-server #'handler {:port 7000}))
+(defn -main [port]
+  (let [port (if (number? p) p (Integer/parseInt p))]
+    (run-jetty #'handler {:port port :join? false})))
 

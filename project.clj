@@ -6,8 +6,6 @@
   :source-paths ["src"]
   :profiles {:dev {:source-paths ["src" "src-test"]
                    :dependencies [[org.clojure/clojurescript "0.0-2511"]
-                                  [ring/ring-core "1.3.2"]
-                                  [ring/ring-devel "1.3.2"]
-                                  [hiccup "1.0.5"]
-                                  [http-kit "2.1.19"]]}}
+                                  [ring "1.3.2"]
+                                  [hiccup "1.0.5"]]}}
   :target-path "target/%s/")
