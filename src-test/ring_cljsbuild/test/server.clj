@@ -43,7 +43,7 @@
       (ring.middleware.reload/wrap-reload)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
-(defn -main [port]
+(defn -main [p]
   (let [port (if (number? p) p (Integer/parseInt p))]
     (run-jetty #'handler {:port port :join? false})))
 
