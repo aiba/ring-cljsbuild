@@ -7,16 +7,20 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
-(defn app [req]
-  (-> (html5 [:body
-              [:div#main "Loading..."]
-              (include-js "/cljsbuild/out/goog/base.js")
-              (include-js "/cljsbuild/main.js")
-              (javascript-tag "goog.require('basic.client');")
-              (javascript-tag "basic.client.main();")])
+(defn render-html5 [& elts]
+  (-> (html5 (list* elts))
       (response)
       (content-type "text/html")
       (charset "utf-8")))
+
+(defn app [req]
+  (render-html5
+   [:body
+    [:div#main "Loading..."]
+    (include-js "/cljsbuild/out/goog/base.js")
+    (include-js "/cljsbuild/main.js")
+    (javascript-tag "goog.require('basic.client');")
+    (javascript-tag "basic.client.main();")]))
 
 (def handler
   (-> #'app
