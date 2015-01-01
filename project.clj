@@ -1,4 +1,4 @@
-(defproject ring-cljsbuild "0.1.1-SNAPSHOT"
+(defproject ring-cljsbuild "0.2.0"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.0"]
                  [digest "1.4.4"]
