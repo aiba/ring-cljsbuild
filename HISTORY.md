@@ -1,4 +1,9 @@
 
+# 0.2.1 (2015-01-01)
+
+* Example server uses :cache-analysis true for big speedup.
+* Updated README with examples.
+
 # 0.2.0 (2014-12-31)
 
 * Updated cljsbuild dep to 1.0.4.
