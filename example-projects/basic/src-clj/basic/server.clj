@@ -1,27 +1,26 @@
 (ns basic.server
-  (:require [hiccup.core :as hiccup]
-            [hiccup.page :refer [doctype include-js]]
+  (:require [hiccup.page :refer [html5 include-js]]
             [hiccup.element :refer [javascript-tag]]
             [ring.util.response :as response]
             (ring.middleware reload stacktrace)
             [ring.adapter.jetty :refer [run-jetty]]
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
-(defn render-html5 [htmlv]
-  (-> (hiccup/html (doctype :html5) htmlv)
+(defn html-response [s]
+  (-> s
       (response/response)
       (response/content-type "text/html")
       (response/charset "utf-8")))
 
 (defn app [req]
-  (render-html5
-   [:html
+  (html-response
+   (html5
     [:body
-     [:div#main "loading..."]
+     [:div#main "Loading..."]
      (include-js "/cljsbuild/out/goog/base.js")
      (include-js "/cljsbuild/main.js")
      (javascript-tag "goog.require('basic.client');")
-     (javascript-tag "basic.client.main();")]]))
+     (javascript-tag "basic.client.main();")])))
 
 (def handler
   (-> #'app
@@ -29,7 +28,7 @@
                                      :incremental true
                                      :compiler {:optimizations :none
                                                 :cache-analysis true}})
-      (ring.middleware.reload/wrap-reload)
+      (ring.middleware.reload/wrap-reload {:dirs "src-clj"})
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
 (defn -main [p]
