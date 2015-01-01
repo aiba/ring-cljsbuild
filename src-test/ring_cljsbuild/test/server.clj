@@ -5,7 +5,7 @@
             [hiccup.element :refer [javascript-tag]]
             [org.httpkit.server :as httpserver]
             [ring.util.response :as response]
-            (ring.middleware stacktrace)
+            (ring.middleware stacktrace params keyword-params)
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
 (defn render-html5 [& elts]
@@ -15,21 +15,31 @@
       (response/charset "utf-8")))
 
 (defn app [req]
-  (render-html5
-   [:html
-    [:head]
-    [:body
-     [:div#main "loading..."]
-     (include-js "/cljsbuild/out/goog/base.js")
-     (include-js "/cljsbuild/main.js")
-     (javascript-tag "goog.require('ring_cljsbuild.test.client');")]]))
+  (let [dev? (nil? (-> req :params :opt))
+        ijs (fn [p] (include-js (format "/cljsbuild/%s/%s" (if dev? "dev" "opt") p)))]
+    (render-html5
+     [:html
+      [:head]
+      [:body
+       [:div#main "loading..."]
+       (when dev? (ijs "out/goog/base.js"))
+       (ijs "main.js")
+       (when dev? (javascript-tag "goog.require('ring_cljsbuild.test.client');"))
+       (javascript-tag "ring_cljsbuild.test.client.main();")]])))
 
 (defn handler []
   (-> #'app
-      (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-test"]
-                                     :incremental true
-                                     :assert true
-                                     :compiler {:optimizations :none}})
+      (wrap-cljsbuild "/cljsbuild/dev/" {:source-paths ["src-test"]
+                                         :incremental true
+                                         :assert true
+                                         :compiler {:optimizations :none}})
+      (wrap-cljsbuild "/cljsbuild/opt/" {:source-paths ["src-test"]
+                                         :incremental true
+                                         :assert false
+                                         :compiler {:optimizations :advanced
+                                                    :pretty-print false}})
+      (ring.middleware.keyword-params/wrap-keyword-params)
+      (ring.middleware.params/wrap-params)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
 (defonce stopper* (atom nil))

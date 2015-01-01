@@ -1,5 +1,5 @@
 (ns ring-cljsbuild.test.client)
 
-(set! (.-innerHTML (.getElementById js/document "main"))
-      "hello from clojurescript")
+(defn ^:export main []
+  (aset (js/document.getElementById "main") "innerHTML" "Hello from clojurescript!"))
 
