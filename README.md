@@ -34,7 +34,7 @@ also want to add a specific clojurescript version dependency.
 ```clj
 (defproject my-project "0.0.1"
   :dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
-                 [ring-cljsbuild "0.2.0"]])
+                 [ring-cljsbuild "0.3.0"]])
 ```
 
 Next require `wrap-cljsbuild` middleware.
