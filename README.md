@@ -28,7 +28,7 @@ format for specifying compiler options is the same.
 
 ## Example
 
-The [basic example server.clj](example-projects/basic/src-clj/basic/server.clj) shows
+The [basic example server](example-projects/basic/src-clj/basic/server.clj) shows
 having a ring webserver and clojurescript compiler in 1 file.
 
 You can try it out:
@@ -48,27 +48,27 @@ Add ring-cljsbuild as a dependency to `project.clj`. As with lein-cljsbuild, you
 also want to add a specific clojurescript version dependency.
 
 ```clj
-(defproject ring-cljsbuild-example "0.0.1"
-:dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
-               [ring-cljsbuild "0.2.0"]])
+(defproject my-project "0.0.1"
+  :dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
+                 [ring-cljsbuild "0.2.0"]])
 ```
 
-Next require `wrap-cljsbuild` middleware.
+In your ring server, require `wrap-cljsbuild` middleware.
 
-```
+```clj
 (ns my-ring-server
   (:require [[ring-cljsbuild.core :refer [wrap-cljsbuild]]]))
 ```
 
-Then add a ring middleware call to `wrap-cljsbuild`.
+Then add a call to `wrap-cljsbuild`.
 
-```
+```clj
 (def app
   (-> #'handler
-  (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-cljs"]
-  :incremental true
-  :compiler {:optimizations :none
-  :cache-analysis true}})))
+      (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-cljs"]
+                                     :incremental true
+                                     :compiler {:optimizations :none
+                                                :cache-analysis true}})))
 ```
 
 The first argument to `wrap-cljsbuild` is the URL prefix from which the compiled
@@ -77,15 +77,13 @@ for "/cljsbuild/main.js" with the output of the clojurescript compiler.
 
 Finally, render a page that references the javascript.
 
-```
+```clj
 (defn render-index [req]
   (html5
     [:body
      (include-js "/cljsbuild/out/goog/base.js")
      (include-js "/cljsbuild/main.js")]))
 ```
-
-That's it!
 
 ## Advanced compilation
 
