@@ -32,7 +32,8 @@
       (wrap-cljsbuild "/cljsbuild/dev/" {:source-paths ["src-test"]
                                          :incremental true
                                          :assert true
-                                         :compiler {:optimizations :none}})
+                                         :compiler {:optimizations :none
+                                                    :cache-analysis true}})
       (wrap-cljsbuild "/cljsbuild/opt/" {:source-paths ["src-test"]
                                          :incremental true
                                          :assert false
