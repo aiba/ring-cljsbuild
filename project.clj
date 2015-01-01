@@ -1,6 +1,6 @@
 (defproject ring-cljsbuild "0.2.0"
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/tools.logging "0.3.0"]
+                 [org.clojure/tools.logging "0.3.1"]
                  [digest "1.4.4"]
                  [cljsbuild "1.0.4"]]
   :source-paths ["src"]
