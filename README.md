@@ -104,6 +104,11 @@ looking at a URL parameter. (TODO: provide example of this).
 * The `:output-to` filename is hard-coded to `"main.js"`. Perhaps this should be
   configurable.
 
+## Related work and discussion
+
+* https://github.com/brandonbloom/cljsd
+* https://twitter.com/BrandonBloom/status/525053394059157504
+
 ## License
 
 Source Copyright © Aaron Iba, 2014-2015.
