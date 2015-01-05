@@ -91,7 +91,7 @@ Now visit http://localhost:8888/. As you edit either `server.clj` or
 
 You can dynamically serve optimized compiles and unomptimized compiles from the same
 webserver, via multiple calls to wrap-cljsbuild with different URL prefixes. Then you
-can decide in the request handler whether to serve optimized or unoptimzed, perhaphs by
+can decide in the request handler whether to serve optimized or unoptimized, perhaphs by
 looking at a URL parameter. (TODO: provide example of this).
 
 ## Implementation Issues
@@ -108,6 +108,7 @@ looking at a URL parameter. (TODO: provide example of this).
 
 * https://github.com/brandonbloom/cljsd
 * https://twitter.com/BrandonBloom/status/525053394059157504
+* https://github.com/hiredman/nrepl-cljs-middleware
 
 ## License
 
