@@ -4,8 +4,8 @@ Ring middleware interface to cljsbuild. It compiles ClojureScript and serves the
 directly from your ring-clojure webserver, instead of requiring a separate lein command
 and separate JVM as [lein-cljsbuild](https://github.com/emezeske/lein-cljsbuild) does.
 
-Under the hood, it uses the same cljsbuild library that lein-cljsbuild uses, so the
-format for specifying compiler options is the same.
+Under the hood, it uses the same cljsbuild library that lein-cljsbuild uses, so
+compiler options are specified in the exact same way.
 
 ## Benefits (vs. lein-cljsbuild)
 
@@ -13,8 +13,8 @@ format for specifying compiler options is the same.
 * cljsbuild configuration changes do not require a JVM restart.
 * cljs compiler errors logged in same place as server-side errors, so there are fewer
   terminal windows to monitor.
-* HTTP requests are blocked until cljs compiler is done, so you can be certain you have
-  latest js.
+* HTTP requests are blocked until cljs compiler is done, so you can be certain
+  the client received the latest compiled js.
 * cljs compiler options can live in same file that serves and calls the resultant js.
   See e.g. [server.clj](example-projects/basic/src-clj/basic/server.clj).
 
@@ -91,16 +91,15 @@ Now visit http://localhost:8888/. As you edit either `server.clj` or
 
 You can dynamically serve optimized compiles and unomptimized compiles from the same
 webserver, via multiple calls to wrap-cljsbuild with different URL prefixes. Then you
-can decide in the request handler whether to serve optimized or unoptimized, perhaphs by
+can decide in the request handler whether to serve optimized or unoptimized, perhaps by
 looking at a URL parameter. (TODO: provide example of this).
 
 ## Implementation Issues
 
-* Crossovers are not supported (but these seem to be a deprecated concept anyway). The
-  use of `emptydir` as a crossovers arg to `run-compiler` is particularly sketchy.
+* Crossovers are not supported (but these seem to be a deprecated concept anyway).
 * The compiler prints to stdout, but arguably this is an issue with the cljsbuild
   library. (Library functions probably shouldn't print to stdout). We could try wrapping
-  this in `with-out-str`.
+  this in `with-out-str` and use clojure.tools.logging.
 * The `:output-to` filename is hard-coded to `"main.js"`. Perhaps this should be
   configurable.
 
@@ -114,4 +113,3 @@ looking at a URL parameter. (TODO: provide example of this).
 
 Source Copyright © Aaron Iba, 2014-2015.
 Released under the MIT license, see [LICENSE](/LICENSE).
-
