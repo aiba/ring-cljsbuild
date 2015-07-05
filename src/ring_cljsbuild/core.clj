@@ -28,19 +28,20 @@
 (defn compile! [opts build-dir mtimes]
   (let [emptydir (.getCanonicalPath
                   (doto (io/file build-dir "empty") (.mkdir)))
-        new-mtimes (compiler/run-compiler (:source-paths opts)
-                                          emptydir ;; TODO: support crossover?
-                                          []       ;; TODO: support crossover?
-                                          (merge  default-compiler-opts
-                                                  (:compiler opts)
-                                                  {:output-to (.getCanonicalPath (io/file build-dir "main.js"))
-                                                   :output-dir (.getCanonicalPath (io/file build-dir "out"))})
-                                          nil ;; notify-commnad
-                                          (:incremental opts)
-                                          (:assert opts)
-                                          @mtimes
-                                          false ;; don't run forever watching the build
-                                          )]
+        new-mtimes (compiler/run-compiler
+                    (:source-paths opts)
+                    emptydir ;; TODO: support crossover?
+                    []       ;; TODO: support crossover?
+                    (merge  default-compiler-opts
+                            (:compiler opts)
+                            {:output-to (.getCanonicalPath (io/file build-dir "main.js"))
+                             :output-dir (.getCanonicalPath (io/file build-dir "out"))})
+                    nil ;; notify-commnad
+                    (:incremental opts)
+                    (:assert opts)
+                    @mtimes
+                    false ;; don't run forever watching the build
+                    )]
     (reset! mtimes new-mtimes)
     (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
 
@@ -69,4 +70,3 @@
 ;;       rather than stdout?  could reify a StringWriter to call log/info and bind *out*
 ;;        to it.
 ;; TODO: better exception handling?  what happens if there is a cljs compiler error?
-

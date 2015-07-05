@@ -46,4 +46,3 @@
 (defn -main [p]
   (let [port (if (number? p) p (Integer/parseInt p))]
     (run-jetty #'handler {:port port :join? false})))
-
