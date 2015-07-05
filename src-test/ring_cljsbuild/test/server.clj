@@ -4,7 +4,7 @@
             [hiccup.element :refer [javascript-tag]]
             [ring.util.response :as response]
             (ring.middleware stacktrace params keyword-params reload)
-            [ring.adapter.jetty :refer [run-jetty]]
+            [org.httpkit.server :as httpserver]
             [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
 
 (defn render-html5 [htmlv]
@@ -26,7 +26,7 @@
        (when dev? (javascript-tag "goog.require('ring_cljsbuild.test.client');"))
        (javascript-tag "ring_cljsbuild.test.client.main();")]])))
 
-(def handler
+(defn handler []
   (-> #'app
       (wrap-cljsbuild "/cljsbuild/dev/" {:source-paths ["src-test"]
                                          :incremental true
@@ -43,6 +43,15 @@
       (ring.middleware.reload/wrap-reload)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
-(defn -main [p]
-  (let [port (if (number? p) p (Integer/parseInt p))]
-    (run-jetty #'handler {:port port :join? false})))
+(def http-stopper* (atom nil))
+(def http-port* 7000)
+
+(defn restart! []
+  (swap! http-stopper*
+         (fn [s]
+           (when s (s))
+           (Thread/sleep 100)
+           (httpserver/run-server (handler) {:port http-port*}))))
+
+(defn -main []
+  (restart!))
