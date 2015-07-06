@@ -1,10 +1,12 @@
 (ns ring-cljsbuild.core
   (:require [clojure.tools.logging :as log]
+            [clojure.string :as string]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :as response]
             [cljsbuild.compiler :as compiler]
             [clojure.java.io :as io]
-            [digest :as digest]))
+            [digest :as digest]
+            [ring-cljsbuild.utils :refer [logtime with-logging-system-out]]))
 
 (def compile-lock* (Object.))
 
@@ -25,7 +27,7 @@
 ;;                     (println "\n")
 ;;                     (apply f args))))
 
-(defn compile! [opts build-dir mtimes]
+(defn compile! [opts build-dir mtimes main-js]
   (let [emptydir (.getCanonicalPath
                   (doto (io/file build-dir "empty") (.mkdir)))
         new-mtimes (compiler/run-compiler
@@ -34,7 +36,7 @@
                     []       ;; TODO: support crossover?
                     (merge  default-compiler-opts
                             (:compiler opts)
-                            {:output-to (.getCanonicalPath (io/file build-dir "main.js"))
+                            {:output-to (.getCanonicalPath (io/file build-dir main-js))
                              :output-dir (.getCanonicalPath (io/file build-dir "out"))})
                     nil ;; notify-commnad
                     (:incremental opts)
@@ -45,28 +47,31 @@
     (reset! mtimes new-mtimes)
     (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
 
-(defn respond-with-compiled-cljs [path opts build-dir mtimes]
+(defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
   (locking compile-lock*
-    (compile! opts build-dir mtimes)
+    (with-logging-system-out "cljsbuild"
+      (compile! opts build-dir mtimes main-js))
     (-> (slurp (io/file build-dir path))
         (response/response)
         (response/content-type "application/javascript"))))
 
-(defn wrap-cljsbuild [handler path opts]
+(defn parse-path-spec [p]
+  (let [parts (.split p "\\/")]
+    [(str (string/join "/" (butlast parts)) "/")
+     (last parts)]))
+
+(defn wrap-cljsbuild [handler pathspec opts]
   (let [target-dir (doto (io/file "./target") (.mkdir))
         base-dir (doto (io/file target-dir "ring-cljsbuild") (.mkdir))
-        build-dir (doto (io/file base-dir (digest/md5 (pr-str [path opts]))) (.mkdir))
+        [path-prefix main-js] (parse-path-spec pathspec)
+        build-dir (doto (io/file base-dir (digest/md5 (pr-str [pathspec opts])))
+                    (.mkdir))
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))]
     (log/info "ring-cljsbuild: cljs build dir: " (.getCanonicalPath build-dir))
     (fn [req]
-      (if (.startsWith (:uri req) path)
-        (respond-with-compiled-cljs (.substring (:uri req) (.length path)) opts build-dir mtimes)
+      (if (.startsWith (:uri req) path-prefix)
+        (respond-with-compiled-cljs
+         (.substring (:uri req) (.length path-prefix)) opts build-dir mtimes main-js)
         (handler req)))))
-
-;; TODO: "/main.js" should be arg, not hard coded?
-;; TODO: use with-out-str wrapping actual compile call to get it to log to tools.logging
-;;       rather than stdout?  could reify a StringWriter to call log/info and bind *out*
-;;        to it.
-;; TODO: better exception handling?  what happens if there is a cljs compiler error?

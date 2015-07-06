@@ -1,0 +1,14 @@
+
+* allow specifying different output filename than "main.js"
+* option to do a clean build
+* redirect stdout to clojure.tools.logging so compile errors appear in logs
+* better exception handling.  what happens if there's a cljs compile error?  what should be served?
+
+* implement our own filesystem tracking:
+    * start recompilation as soon as a file changes.
+    * debounce by 5ms in case a lot of files change simultaneously.
+    * should be able to reduce latency on serving files by not calling (compile!)
+
+* source maps?
+
+* where do :incremental and :assert go?
