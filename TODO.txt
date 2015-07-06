@@ -1,14 +1,23 @@
 
-* allow specifying different output filename than "main.js"
-* option to do a clean build
-* redirect stdout to clojure.tools.logging so compile errors appear in logs
-* better exception handling.  what happens if there's a cljs compile error?  what should be served?
+TODO:
 
-* implement our own filesystem tracking:
-    * start recompilation as soon as a file changes.
-    * debounce by 5ms in case a lot of files change simultaneously.
-    * should be able to reduce latency on serving files by not calling (compile!)
+  filesystem tracking:
+      start recompilation as soon as a file changes.
+      debounce by 5ms in case a lot of files change simultaneously.
+      should be able to reduce latency on serving files by not calling (compile!)
 
-* source maps?
+  clean up logging-writer implementation; remove logging-print-stream.
 
-* where do :incremental and :assert go?
+MISC:
+
+  exception handling:
+      what happens if there's a cljs compile error?  what should be served?
+
+  option to do a clean build
+  source maps?
+  where do :incremental and :assert go?
+
+DONE:
+
+X redirect stdout logs to clojure.tools.logging
+X allow specifying different output filename than "main.js"
