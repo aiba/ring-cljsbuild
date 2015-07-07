@@ -6,6 +6,7 @@
             [cljsbuild.compiler :as compiler]
             [clojure.java.io :as io]
             [digest :as digest]
+            [ring-cljsbuild.filewatcher :as filewatcher]
             [ring-cljsbuild.utils :refer [logtime with-logging-system-out]]))
 
 (def compile-lock* (Object.))
@@ -28,29 +29,31 @@
 ;;                     (apply f args))))
 
 (defn compile! [opts build-dir mtimes main-js]
-  (let [emptydir (.getCanonicalPath
-                  (doto (io/file build-dir "empty") (.mkdir)))
-        new-mtimes (compiler/run-compiler
-                    (:source-paths opts)
-                    emptydir ;; TODO: support crossover?
-                    []       ;; TODO: support crossover?
-                    (merge  default-compiler-opts
-                            (:compiler opts)
-                            {:output-to (.getCanonicalPath (io/file build-dir main-js))
-                             :output-dir (.getCanonicalPath (io/file build-dir "out"))})
-                    nil ;; notify-commnad
-                    (:incremental opts)
-                    (:assert opts)
-                    @mtimes
-                    false ;; don't run forever watching the build
-                    )]
-    (reset! mtimes new-mtimes)
-    (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
+  (with-logging-system-out "cljsbuild"
+    (let [emptydir (.getCanonicalPath
+                    (doto (io/file build-dir "empty") (.mkdir)))
+          new-mtimes (compiler/run-compiler
+                      (:source-paths opts)
+                      emptydir ;; TODO: support crossover?
+                      []       ;; TODO: support crossover?
+                      (merge  default-compiler-opts
+                              (:compiler opts)
+                              {:output-to (.getCanonicalPath
+                                           (io/file build-dir main-js))
+                               :output-dir (.getCanonicalPath
+                                            (io/file build-dir "out"))})
+                      nil ;; notify-commnad
+                      (:incremental opts)
+                      (:assert opts)
+                      @mtimes
+                      false ;; don't run forever watching the build
+                      )]
+      (reset! mtimes new-mtimes)
+      (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes)))))
 
 (defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
   (locking compile-lock*
-    (with-logging-system-out "cljsbuild"
-      (compile! opts build-dir mtimes main-js))
+    (compile! opts build-dir mtimes main-js)
     (-> (slurp (io/file build-dir path))
         (response/response)
         (response/content-type "application/javascript"))))
@@ -59,6 +62,9 @@
   (let [parts (.split p "\\/")]
     [(str (string/join "/" (butlast parts)) "/")
      (last parts)]))
+
+(defn clear-builds! []
+  (filewatcher/clear-all!))
 
 (defn wrap-cljsbuild [handler pathspec opts]
   (let [target-dir (doto (io/file "./target") (.mkdir))
@@ -70,6 +76,12 @@
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))]
     (log/info "ring-cljsbuild: cljs build dir: " (.getCanonicalPath build-dir))
+    ;; set up watcher
+    (filewatcher/watch-dirs! (:source-paths opts)
+                             (fn []
+                               (log/info "detected source path file change.")
+                               (locking compile-lock*
+                                 (compile! opts build-dir mtimes main-js))))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
         (respond-with-compiled-cljs
