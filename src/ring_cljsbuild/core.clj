@@ -20,7 +20,7 @@
    :warnings true
    :pretty-print true})
 
-(defn compile! [opts build-dir mtimes main-js]
+(defn run-compiler! [opts build-dir mtimes main-js]
   (try
     (let [emptydir (.getCanonicalPath
                     (doto (io/file build-dir "empty") (.mkdir)))
@@ -45,9 +45,9 @@
     (catch Exception e
       (pst+ e))))
 
-(defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
+(defn respond-with-compiled-cljs [build-dir path compile!]
   (locking compile-lock*
-    (compile! opts build-dir mtimes main-js)
+    (compile!)
     (-> (slurp (io/file build-dir path))
         (response/response)
         (response/content-type "application/javascript"))))
@@ -83,17 +83,19 @@
                     (.mkdir))
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
-                       (read-string (slurp mtimes-file))))]
-    (with-message-logging (:log-messages opts)
-      (fn []
-        (watch-source-dirs! (:source-paths opts)
-                            (-> (fn []
-                                  (println "detected source path file change.")
-                                  (locking compile-lock*
-                                    (compile! opts build-dir mtimes main-js)))
-                                (debounce 5)))
-        (fn [req]
-          (if (.startsWith (:uri req) path-prefix)
-            (respond-with-compiled-cljs
-             (.substring (:uri req) (.length path-prefix)) opts build-dir mtimes main-js)
-            (handler req)))))))
+                       (read-string (slurp mtimes-file))))
+        compile! (-> (fn []
+                       (with-message-logging (:log-messages opts)
+                         (fn [] (run-compiler! opts build-dir mtimes main-js))))
+                     (debounce 5))]
+    (watch-source-dirs! (:source-paths opts)
+                        (fn []
+                          (println "detected source path file change.")
+                          (locking compile-lock* (compile!))))
+    (future (locking compile-lock* (compile!)))
+    (fn [req]
+      (if (.startsWith (:uri req) path-prefix)
+        (respond-with-compiled-cljs build-dir
+                                    (.substring (:uri req) (.length path-prefix))
+                                    compile!)
+        (handler req)))))

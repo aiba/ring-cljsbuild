@@ -1,13 +1,9 @@
 
 TODO:
 
-  compare speeds vs. lein-cljsbuild
+  strip out ANSI color sequences when using with-logs
 
-  option to use clojure.toolgs.logging/with-logs
-    strip out ANSI color sequences
-
-  parallelize different builds?
-  test source maps?
+  parallelize different builds? (compile-lock* is per wrap-cljsbuild)
 
   update readme:
     mention ionotify advantage
@@ -29,5 +25,8 @@ X filesystem tracking:
   X   should be able to reduce latency on serving files by not calling (compile!)
 
 X clean up logging-writer implementation; remove logging-print-stream.
-
 X where do :incremental and :assert go?
+X compare speeds vs. lein-cljsbuild
+X option to use clojure.toolgs.logging/with-logs
+X test source maps
+X start a compile first time immediately after wrap called.
