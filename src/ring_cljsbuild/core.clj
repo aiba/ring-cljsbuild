@@ -6,9 +6,9 @@
             [cljsbuild.compiler :as compiler]
             [clojure.java.io :as io]
             [digest :as digest]
+            [clj-stacktrace.repl :refer [pst+]]
             [ring-cljsbuild.filewatcher :as filewatcher]
-            [ring-cljsbuild.utils :refer [logtime debounce]])
-  (:import org.apache.commons.lang3.exception.ExceptionUtils))
+            [ring-cljsbuild.utils :refer [logtime debounce]]))
 
 (def compile-lock* (Object.))
 
@@ -43,8 +43,7 @@
       (reset! mtimes new-mtimes)
       (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes)))
     (catch Exception e
-      (println "cljsbuild compiler error:\n\n"
-               (ExceptionUtils/getStackTrace e)))))
+      (pst+ e))))
 
 (defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
   (locking compile-lock*

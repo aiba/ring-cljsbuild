@@ -1,7 +1,8 @@
 
 TODO:
 
-  clean up logging-writer implementation; remove logging-print-stream.
+  option to use clojure.toolgs.logging/with-logs
+  parallelize different builds?
 
 MISC:
 
@@ -21,3 +22,5 @@ X filesystem tracking:
   X   start recompilation as soon as a file changes.
   X   debounce by 5ms in case a lot of files change simultaneously.
   X   should be able to reduce latency on serving files by not calling (compile!)
+
+X clean up logging-writer implementation; remove logging-print-stream.
