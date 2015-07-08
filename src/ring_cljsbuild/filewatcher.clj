@@ -44,40 +44,50 @@
     (mapv #(do [(kindkeys* (.kind %)) (parse-context %)])
           events)))
 
-(defn- process-watchdir [{:keys [ws dir onevent] :as state}]
-  (log/info "process-watchdir, waiting for event.")
-  (let [wk (.take ws)] ; blocking
-    (try
-      (log/info "onevent:" wk)
-      (onevent (parse-events wk))
-      (catch Exception e
-        (log/error e "process-watchdir-error"))
-      (finally
-        (.reset wk)
-        (send-off *agent* process-watchdir))) ; loop
-    state))
-
-(defn watch! [^String path callback]
-  (let [ws (new-watch-service path)
-        a (agent {:ws ws :path path :onevent callback}
-                 :error-handler #(log/error % "watchdir-agent-error")
-                 :error-mode :continue)]
-    (send-off a process-watchdir)
-    nil))
+(defn- process-watchdir [{:keys [ws dir onevent stop?] :as state}]
+  (if stop?
+    (do (.close ws)
+        state)
+    (let [wk (.take ws)] ; blocking
+      (try
+        (log/info "onevent:" wk)
+        (onevent (parse-events wk))
+        (catch Exception e
+          (log/error e "process-watchdir-error"))
+        (finally
+          (.reset wk)
+          (send-off *agent* process-watchdir)))
+      state)))
 
 ;; Clojure interface ———————————————————————————————————————————————————————————
 
-(def watches* (atom {}))
+(defonce watchers* (atom #{}))
 
-(defn clear-all! []
+;; Returns an agent.
+(defn watch! [^String path callback]
+  (let [ws (new-watch-service path)
+        a (agent {:ws ws :path path :onevent callback :stop? false}
+                 :error-handler #(log/error % "watchdir-agent-error")
+                 :error-mode :continue)]
+    (send-off a process-watchdir)
+    (swap! watchers* conj a)
+    a))
+
+(defn stop! [a]
+  (send-off a (fn [a] (assoc a :stop? true)))
+  (swap! watchers* disj a)
   nil)
 
-(defn watch-dirs! [paths callback]
+(defn clear-watchers! []
+  (doseq [a @watchers*]
+    (stop! a))
   nil)
 
 
 (comment
 
+  @watchers*
   (watch! "/tmp/somedir" (fn [events] (println "events:" (pr-str events))))
+  (clear-watchers!)
 
   )
