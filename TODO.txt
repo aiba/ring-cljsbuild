@@ -1,17 +1,22 @@
 
 TODO:
 
+  compare speeds vs. lein-cljsbuild
+
   option to use clojure.toolgs.logging/with-logs
+    strip out ANSI color sequences
+
   parallelize different builds?
+  test source maps?
+
+  update readme:
+    mention ionotify advantage
+    mention parallelizing builds?
+    mention logging feature
 
 MISC:
 
-  exception handling:
-      what happens if there's a cljs compile error?  what should be served?
-
   option to do a clean build
-  source maps?
-  where do :incremental and :assert go?
 
 DONE:
 
@@ -24,3 +29,5 @@ X filesystem tracking:
   X   should be able to reduce latency on serving files by not calling (compile!)
 
 X clean up logging-writer implementation; remove logging-print-stream.
+
+X where do :incremental and :assert go?

@@ -26,15 +26,17 @@
        (when dev? (javascript-tag "goog.require('ring_cljsbuild.test.client');"))
        (javascript-tag "ring_cljsbuild.test.client.main();")]])))
 
-(defn handler []
+(defn make-handler []
   (rcb/clear-builds!)
   (-> #'app
       (rcb/wrap-cljsbuild "/cljsbuild/dev/main.js"
                           {:source-paths ["src-test"]
                            :incremental true
                            :assert true
+                           :log-messages false
                            :compiler {:optimizations :none
-                                      :cache-analysis true}})
+                                      :cache-analysis true
+                                      :pretty-print true}})
       ;; TODO: add back opt build.
       #_(rcb/wrap-cljsbuild "/cljsbuild/opt/main.js"
                             {:source-paths ["src-test"]
@@ -47,15 +49,14 @@
       (ring.middleware.reload/wrap-reload)
       (ring.middleware.stacktrace/wrap-stacktrace)))
 
-(def http-stopper* (atom nil))
+(defonce http-stopper* (atom nil))
 (def http-port* 7000)
 
 (defn restart! []
   (swap! http-stopper*
          (fn [s]
-           (when s (s))
-           (Thread/sleep 100)
-           (httpserver/run-server (handler) {:port http-port*}))))
+           (when s (s :timeout 100))
+           (httpserver/run-server (make-handler) {:port http-port*}))))
 
 (defn -main []
   (restart!))

@@ -70,6 +70,11 @@
                             (when (some file-event? events)
                               (cb)))))))
 
+(defn with-message-logging [logs? f]
+  (if logs?
+    (log/with-logs 'ring-cljsbuild (f))
+    (f)))
+
 (defn wrap-cljsbuild [handler pathspec opts]
   (let [target-dir (doto (io/file "./target") (.mkdir))
         base-dir (doto (io/file target-dir "ring-cljsbuild") (.mkdir))
@@ -79,15 +84,16 @@
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))]
-    ;; set up watcher
-    (watch-source-dirs! (:source-paths opts)
-                        (-> (fn []
-                              (println "detected source path file change.")
-                              (locking compile-lock*
-                                (compile! opts build-dir mtimes main-js)))
-                            (debounce 5)))
-    (fn [req]
-      (if (.startsWith (:uri req) path-prefix)
-        (respond-with-compiled-cljs
-         (.substring (:uri req) (.length path-prefix)) opts build-dir mtimes main-js)
-        (handler req)))))
+    (with-message-logging (:log-messages opts)
+      (fn []
+        (watch-source-dirs! (:source-paths opts)
+                            (-> (fn []
+                                  (println "detected source path file change.")
+                                  (locking compile-lock*
+                                    (compile! opts build-dir mtimes main-js)))
+                                (debounce 5)))
+        (fn [req]
+          (if (.startsWith (:uri req) path-prefix)
+            (respond-with-compiled-cljs
+             (.substring (:uri req) (.length path-prefix)) opts build-dir mtimes main-js)
+            (handler req)))))))
