@@ -112,4 +112,5 @@ looking at a URL parameter. (TODO: provide example of this).
 ## License
 
 Source Copyright © Aaron Iba, 2014-2015.
-Released under the MIT license, see [LICENSE](/LICENSE).
+Distributed under the Eclipse Public License, the same as Clojure uses.
+See [LICENSE](/LICENSE).

@@ -1,4 +1,9 @@
 (defproject ring-cljsbuild "1.0.0-alpha1"
+  :description "ClojureScript compiler as ring middleware"
+  :url "https://github.com/aiba/ring-cljsbuild"
+  :license {:name "Eclipse Public License - v 1.0"
+            :url "http://www.eclipse.org/legal/epl-v10.html"
+            :distribution :repo}
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/tools.logging "0.3.1"]
                  [digest "1.4.4"]
