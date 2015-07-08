@@ -59,3 +59,8 @@
 
 (defn -main []
   (restart!))
+
+(comment
+  http-stopper*
+  (restart!)
+  )

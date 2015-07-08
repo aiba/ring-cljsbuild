@@ -7,7 +7,7 @@
             [clojure.java.io :as io]
             [digest :as digest]
             [ring-cljsbuild.filewatcher :as filewatcher]
-            [ring-cljsbuild.utils :refer [logtime with-logging-system-out]]))
+            [ring-cljsbuild.utils :refer [logtime with-logging-system-out debounce]]))
 
 (def compile-lock* (Object.))
 
@@ -64,7 +64,14 @@
      (last parts)]))
 
 (defn clear-builds! []
-  #_(filewatcher/clear-all!))
+  (filewatcher/clear-watchers!))
+
+(defn watch-source-dirs! [dirs cb]
+  (doseq [d dirs]
+    (filewatcher/watch! d
+                        (fn [events]
+                          ;; TODO: skip files that start with .
+                          (cb)))))
 
 (defn wrap-cljsbuild [handler pathspec opts]
   (let [target-dir (doto (io/file "./target") (.mkdir))
@@ -77,11 +84,12 @@
                        (read-string (slurp mtimes-file))))]
     (log/info "ring-cljsbuild: cljs build dir: " (.getCanonicalPath build-dir))
     ;; set up watcher
-    #_(filewatcher/watch-dirs! (:source-paths opts)
-                               (fn []
-                                 (log/info "detected source path file change.")
-                                 (locking compile-lock*
-                                   (compile! opts build-dir mtimes main-js))))
+    (watch-source-dirs! (:source-paths opts)
+                        (-> (fn []
+                              (log/info "detected source path file change.")
+                              (locking compile-lock*
+                                (compile! opts build-dir mtimes main-js)))
+                            (debounce 10)))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
         (respond-with-compiled-cljs
