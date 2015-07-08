@@ -67,11 +67,14 @@
   (filewatcher/clear-watchers!))
 
 (defn watch-source-dirs! [dirs cb]
-  (doseq [d dirs]
-    (filewatcher/watch! d
-                        (fn [events]
-                          ;; TODO: skip files that start with .
-                          (cb)))))
+  (letfn [(file-event? [[_ f]]
+            (and (.isFile f)
+                 (not (.isHidden f))))]
+    (doseq [d dirs]
+      (filewatcher/watch! d
+                          (fn [events]
+                            (when (some file-event? events)
+                              (cb)))))))
 
 (defn wrap-cljsbuild [handler pathspec opts]
   (let [target-dir (doto (io/file "./target") (.mkdir))
@@ -82,14 +85,13 @@
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))]
-    (log/info "ring-cljsbuild: cljs build dir: " (.getCanonicalPath build-dir))
     ;; set up watcher
     (watch-source-dirs! (:source-paths opts)
                         (-> (fn []
                               (log/info "detected source path file change.")
                               (locking compile-lock*
                                 (compile! opts build-dir mtimes main-js)))
-                            (debounce 10)))
+                            (debounce 5)))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
         (respond-with-compiled-cljs
