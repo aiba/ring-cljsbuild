@@ -32,11 +32,11 @@
       ws)))
 
 (defn- parse-context [we] ;; WatchEvent
-  ;; TODO: unify with two APIs?  what type does this return?
   (let [ctx (.context we)]
-    ;; ctx is either java.nio.file.Path or a java.io.File.
-    ;; Either way, toString is what we want.
-    (.toString ctx)))
+    (cond
+      (instance? java.io.File ctx) ctx
+      (instance? java.nio.file.Path ctx) (.toFile ctx)
+      :else (do (log/warn "unknown event context:" ctx) ctx))))
 
 ;; Converts a watch key to a list of [kind path]
 (defn- parse-events [wk]
