@@ -20,7 +20,6 @@
           [(sym->eventkind sym) k])))
 
 (defn- new-watch-service [^String path]
-  (log/info "watching directory:" path)
   (if (osx?)
     (let [ws (com.barbarysoftware.watchservice.WatchService/newWatchService)
           wf (com.barbarysoftware.watchservice.WatchableFile. (io/file path))]
@@ -50,7 +49,6 @@
         state)
     (let [wk (.take ws)] ; blocking
       (try
-        (log/info "onevent:" wk)
         (onevent (parse-events wk))
         (catch Exception e
           (log/error e "process-watchdir-error"))
