@@ -1,11 +1,6 @@
 
 TODO:
 
-  filesystem tracking:
-      start recompilation as soon as a file changes.
-      debounce by 5ms in case a lot of files change simultaneously.
-      should be able to reduce latency on serving files by not calling (compile!)
-
   clean up logging-writer implementation; remove logging-print-stream.
 
 MISC:
@@ -21,3 +16,8 @@ DONE:
 
 X redirect stdout logs to clojure.tools.logging
 X allow specifying different output filename than "main.js"
+
+X filesystem tracking:
+  X   start recompilation as soon as a file changes.
+  X   debounce by 5ms in case a lot of files change simultaneously.
+  X   should be able to reduce latency on serving files by not calling (compile!)
