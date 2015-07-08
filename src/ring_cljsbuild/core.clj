@@ -7,7 +7,8 @@
             [clojure.java.io :as io]
             [digest :as digest]
             [ring-cljsbuild.filewatcher :as filewatcher]
-            [ring-cljsbuild.utils :refer [logtime with-logging-system-out debounce]]))
+            [ring-cljsbuild.utils :refer [logtime debounce]])
+  (:import org.apache.commons.lang3.exception.ExceptionUtils))
 
 (def compile-lock* (Object.))
 
@@ -19,40 +20,31 @@
    :warnings true
    :pretty-print true})
 
-;; (require 'cljsbuild.compiler)
-;; (alter-var-root #'cljsbuild.compiler/run-compiler
-;;                 (fn [f]
-;;                   (fn [& args]
-;;                     (println "compiling with options:\n")
-;;                     (println (with-out-str (clojure.pprint/pprint args)))
-;;                     (println "\n")
-;;                     (apply f args))))
-
 (defn compile! [opts build-dir mtimes main-js]
   (try
-    (with-logging-system-out "cljsbuild"
-      (let [emptydir (.getCanonicalPath
-                      (doto (io/file build-dir "empty") (.mkdir)))
-            new-mtimes (compiler/run-compiler
-                        (:source-paths opts)
-                        emptydir ;; TODO: support crossover?
-                        []       ;; TODO: support crossover?
-                        (merge  default-compiler-opts
-                                (:compiler opts)
-                                {:output-to (.getCanonicalPath
-                                             (io/file build-dir main-js))
-                                 :output-dir (.getCanonicalPath
-                                              (io/file build-dir "out"))})
-                        nil ;; notify-commnad
-                        (:incremental opts)
-                        (:assert opts)
-                        @mtimes
-                        false ;; don't run forever watching the build
-                        )]
-        (reset! mtimes new-mtimes)
-        (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
+    (let [emptydir (.getCanonicalPath
+                    (doto (io/file build-dir "empty") (.mkdir)))
+          new-mtimes (compiler/run-compiler
+                      (:source-paths opts)
+                      emptydir ;; TODO: support crossover?
+                      []       ;; TODO: support crossover?
+                      (merge  default-compiler-opts
+                              (:compiler opts)
+                              {:output-to (.getCanonicalPath
+                                           (io/file build-dir main-js))
+                               :output-dir (.getCanonicalPath
+                                            (io/file build-dir "out"))})
+                      nil ;; notify-commnad
+                      (:incremental opts)
+                      (:assert opts)
+                      @mtimes
+                      false ;; don't run forever watching the build
+                      )]
+      (reset! mtimes new-mtimes)
+      (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes)))
     (catch Exception e
-      (log/error e "cljsbuild compiler error:"))))
+      (println "cljsbuild compiler error:\n\n"
+               (ExceptionUtils/getStackTrace e)))))
 
 (defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
   (locking compile-lock*
@@ -91,7 +83,7 @@
     ;; set up watcher
     (watch-source-dirs! (:source-paths opts)
                         (-> (fn []
-                              (log/info "detected source path file change.")
+                              (println "detected source path file change.")
                               (locking compile-lock*
                                 (compile! opts build-dir mtimes main-js)))
                             (debounce 5)))
