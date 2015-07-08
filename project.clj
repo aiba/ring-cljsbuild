@@ -3,6 +3,7 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [digest "1.4.4"]
                  [cljsbuild "1.0.6"]
+                 [org.apache.commons/commons-lang3 "3.4"]
                  [net.incongru.watchservice/barbary-watchservice "1.0"]]
   :source-paths ["src"]
   :profiles {:dev {:source-paths ["src" "src-test"]

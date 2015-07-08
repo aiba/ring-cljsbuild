@@ -5,7 +5,7 @@
             [ring.util.response :as response]
             (ring.middleware stacktrace params keyword-params reload)
             [org.httpkit.server :as httpserver]
-            [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
+            [ring-cljsbuild.core :as rcb]))
 
 (defn render-html5 [htmlv]
   (-> (hiccup/html (doctype :html5) htmlv)
@@ -27,17 +27,21 @@
        (javascript-tag "ring_cljsbuild.test.client.main();")]])))
 
 (defn handler []
+  (rcb/clear-builds!)
   (-> #'app
-      (wrap-cljsbuild "/cljsbuild/dev/" {:source-paths ["src-test"]
-                                         :incremental true
-                                         :assert true
-                                         :compiler {:optimizations :none
-                                                    :cache-analysis true}})
-      (wrap-cljsbuild "/cljsbuild/opt/" {:source-paths ["src-test"]
-                                         :incremental true
-                                         :assert false
-                                         :compiler {:optimizations :advanced
-                                                    :pretty-print false}})
+      (rcb/wrap-cljsbuild "/cljsbuild/dev/main.js"
+                          {:source-paths ["src-test"]
+                           :incremental true
+                           :assert true
+                           :compiler {:optimizations :none
+                                      :cache-analysis true}})
+      ;; TODO: add back opt build.
+      #_(rcb/wrap-cljsbuild "/cljsbuild/opt/main.js"
+                            {:source-paths ["src-test"]
+                             :incremental true
+                             :assert false
+                             :compiler {:optimizations :advanced
+                                        :pretty-print false}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)
