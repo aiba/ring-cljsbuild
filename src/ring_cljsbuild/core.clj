@@ -1,6 +1,5 @@
 (ns ring-cljsbuild.core
-  (:require [clojure.tools.logging :as log]
-            [clojure.string :as string]
+  (:require [clojure.string :as string]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :as response]
             [cljsbuild.compiler :as compiler]
@@ -8,9 +7,9 @@
             [digest :as digest]
             [clj-stacktrace.repl :refer [pst+]]
             [ring-cljsbuild.filewatcher :as filewatcher]
-            [ring-cljsbuild.utils :refer [logtime debounce]]))
+            [ring-cljsbuild.utils :refer [logtime with-logs debounce]]))
 
-(def compile-lock* (Object.))
+(defonce compile-lock* (Object.))
 
 ;; See lein-cljsbuild/plugin/src/leiningen/cljsbuild/config.clj
 (def default-compiler-opts
@@ -72,7 +71,7 @@
 
 (defn with-message-logging [logs? f]
   (if logs?
-    (log/with-logs 'ring-cljsbuild (f))
+    (with-logs 'ring-cljsbuild (f))
     (f)))
 
 (defn wrap-cljsbuild [handler pathspec opts]

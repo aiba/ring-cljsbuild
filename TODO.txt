@@ -1,7 +1,8 @@
 
 TODO:
 
-  strip out ANSI color sequences when using with-logs
+  automatically clear watches on a directory when a new one is set up
+      remove clear-builds!
 
   parallelize different builds? (compile-lock* is per wrap-cljsbuild)
 
@@ -30,3 +31,4 @@ X compare speeds vs. lein-cljsbuild
 X option to use clojure.toolgs.logging/with-logs
 X test source maps
 X start a compile first time immediately after wrap called.
+X strip out ANSI color sequences when using with-logs
