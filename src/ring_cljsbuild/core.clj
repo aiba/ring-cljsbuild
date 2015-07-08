@@ -29,27 +29,30 @@
 ;;                     (apply f args))))
 
 (defn compile! [opts build-dir mtimes main-js]
-  (with-logging-system-out "cljsbuild"
-    (let [emptydir (.getCanonicalPath
-                    (doto (io/file build-dir "empty") (.mkdir)))
-          new-mtimes (compiler/run-compiler
-                      (:source-paths opts)
-                      emptydir ;; TODO: support crossover?
-                      []       ;; TODO: support crossover?
-                      (merge  default-compiler-opts
-                              (:compiler opts)
-                              {:output-to (.getCanonicalPath
-                                           (io/file build-dir main-js))
-                               :output-dir (.getCanonicalPath
-                                            (io/file build-dir "out"))})
-                      nil ;; notify-commnad
-                      (:incremental opts)
-                      (:assert opts)
-                      @mtimes
-                      false ;; don't run forever watching the build
-                      )]
-      (reset! mtimes new-mtimes)
-      (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes)))))
+  (try
+    (with-logging-system-out "cljsbuild"
+      (let [emptydir (.getCanonicalPath
+                      (doto (io/file build-dir "empty") (.mkdir)))
+            new-mtimes (compiler/run-compiler
+                        (:source-paths opts)
+                        emptydir ;; TODO: support crossover?
+                        []       ;; TODO: support crossover?
+                        (merge  default-compiler-opts
+                                (:compiler opts)
+                                {:output-to (.getCanonicalPath
+                                             (io/file build-dir main-js))
+                                 :output-dir (.getCanonicalPath
+                                              (io/file build-dir "out"))})
+                        nil ;; notify-commnad
+                        (:incremental opts)
+                        (:assert opts)
+                        @mtimes
+                        false ;; don't run forever watching the build
+                        )]
+        (reset! mtimes new-mtimes)
+        (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
+    (catch Exception e
+      (log/error e "cljsbuild compiler error:"))))
 
 (defn respond-with-compiled-cljs [path opts build-dir mtimes main-js]
   (locking compile-lock*
