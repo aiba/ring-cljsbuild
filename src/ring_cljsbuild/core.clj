@@ -83,14 +83,14 @@
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))
-        compile! (-> (fn []
-                       (with-message-logging (:log-messages opts)
-                         (fn [] (run-compiler! opts build-dir mtimes main-js))))
-                     (debounce 5))]
+        compile! (fn []
+                   (with-message-logging (:log-messages opts)
+                     (fn [] (run-compiler! opts build-dir mtimes main-js))))]
     (watch-source-dirs! (:source-paths opts)
-                        (fn []
-                          (println "detected source path file change.")
-                          (locking compile-lock* (compile!))))
+                        (-> (fn []
+                              (println "detected source path file change.")
+                              (locking compile-lock* (compile!)))
+                            (debounce 5)))
     (future (locking compile-lock* (compile!)))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
