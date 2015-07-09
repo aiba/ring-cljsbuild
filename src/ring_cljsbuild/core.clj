@@ -9,7 +9,13 @@
             [ring-cljsbuild.filewatcher :as filewatcher]
             [ring-cljsbuild.utils :refer [logtime with-logs debounce]]))
 
-(defonce compile-lock* (Object.))
+;; calls to compile hold a lock on the destination (output) directory path.
+(defonce compile-locks* (atom {})) ;; map of String -> Object
+(defn compile-lock [dst-path]
+  (locking compile-locks*
+    (when-not (@compile-locks* dst-path)
+      (swap! compile-locks* assoc dst-path (Object.)))
+    (@compile-locks* dst-path)))
 
 ;; See lein-cljsbuild/plugin/src/leiningen/cljsbuild/config.clj
 (def default-compiler-opts
@@ -44,12 +50,10 @@
     (catch Exception e
       (pst+ e))))
 
-(defn respond-with-compiled-cljs [build-dir path compile!]
-  (locking compile-lock*
-    (compile!)
-    (-> (slurp (io/file build-dir path))
-        (response/response)
-        (response/content-type "application/javascript"))))
+(defn respond-with-compiled-cljs [build-dir path]
+  (-> (slurp (io/file build-dir path))
+      (response/response)
+      (response/content-type "application/javascript")))
 
 (defn parse-path-spec [p]
   (let [parts (.split p "\\/")]
@@ -80,6 +84,7 @@
         [path-prefix main-js] (parse-path-spec pathspec)
         build-dir (doto (io/file base-dir (digest/md5 (pr-str [pathspec opts])))
                     (.mkdir))
+        lock (compile-lock (.getCanonicalPath build-dir))
         mtimes-file (io/file build-dir ".last-mtimes")
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))
@@ -89,12 +94,13 @@
     (watch-source-dirs! (:source-paths opts)
                         (-> (fn []
                               (println "detected source path file change.")
-                              (locking compile-lock* (compile!)))
+                              (locking lock (compile!)))
                             (debounce 5)))
-    (future (locking compile-lock* (compile!)))
+    (future (locking lock (compile!)))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
-        (respond-with-compiled-cljs build-dir
-                                    (.substring (:uri req) (.length path-prefix))
-                                    compile!)
+        (locking lock
+          (compile!)
+          (respond-with-compiled-cljs build-dir
+                                      (.substring (:uri req) (.length path-prefix))))
         (handler req)))))
