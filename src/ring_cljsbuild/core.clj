@@ -25,6 +25,11 @@
    :warnings true
    :pretty-print true})
 
+(defn update-source-map [m]
+  (if (:source-map m)
+    (assoc m :source-map (str (:output-to m) ".map"))
+    (dissoc m :source-map)))
+
 (defn run-compiler! [opts build-dir mtimes main-js]
   (try
     (let [emptydir (.getCanonicalPath
@@ -33,12 +38,13 @@
                       (:source-paths opts)
                       emptydir ;; TODO: support crossover?
                       []       ;; TODO: support crossover?
-                      (merge  default-compiler-opts
-                              (:compiler opts)
-                              {:output-to (.getCanonicalPath
-                                           (io/file build-dir main-js))
-                               :output-dir (.getCanonicalPath
-                                            (io/file build-dir "out"))})
+                      (-> default-compiler-opts
+                          (merge (:compiler opts))
+                          (merge {:output-to (.getCanonicalPath
+                                              (io/file build-dir main-js))
+                                  :output-dir (.getCanonicalPath
+                                               (io/file build-dir "out"))})
+                          (update-source-map))
                       nil ;; notify-commnad
                       (:incremental opts)
                       (:assert opts)
