@@ -66,7 +66,6 @@
   (swap! filewatchers*
          (fn [watchers]
            (doseq [w (watchers id)]
-             (println "clearing watcher for " id) ;; TODO: remove
              (filewatcher/stop! w))
            (assoc watchers id []))))
 
@@ -107,12 +106,6 @@
     (watch-source-dirs! (:id opts)
                         (:source-paths opts)
                         (-> (fn []
-                              (with-message-logging (:log-messages)
-                                (println "----"
-                                         "ring-cljsbuild:"
-                                         "detected file change in profile"
-                                         (:id opts)
-                                         "----"))
                               (locking lock (compile!)))
                             (debounce 5)))
     (future (locking lock (compile!)))
@@ -123,3 +116,9 @@
           (respond-with-compiled-cljs build-dir
                                       (.substring (:uri req) (.length path-prefix))))
         (handler req)))))
+
+(comment
+
+  ((:dev @filewatchers*) 0)
+
+  )
