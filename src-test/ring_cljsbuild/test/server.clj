@@ -29,21 +29,27 @@
 (defn make-handler []
   (-> #'app
       (wrap-cljsbuild "/cljsbuild/dev/main.js"
-                      {:id :dev
-                       :log-messages false
-                       :source-paths ["src-test"]
-                       :incremental true
-                       :assert true
-                       :compiler {:optimizations :none
-                                  :cache-analysis true
-                                  :pretty-print true}})
-      ;; TODO: add back opt build.
-      #_(rcb/wrap-cljsbuild "/cljsbuild/opt/main.js"
-                            {:source-paths ["src-test"]
-                             :incremental true
-                             :assert false
-                             :compiler {:optimizations :advanced
-                                        :pretty-print false}})
+                      {:auto true
+                       :log false
+                       :cljsbuild {:log-messages false
+                                   :auto-recompile true
+                                   :source-paths ["src-test"]
+                                   :incremental true
+                                   :assert true
+                                   :compiler {:optimizations :none
+                                              :cache-analysis true
+                                              :pretty-print true}}})
+      (wrap-cljsbuild "/cljsbuild/simple/main.js"
+                      {:auto false
+                       :log true
+                       :cljsbuild {:source-paths ["src-test"]
+                                   :compiler {:optimizations :simple
+                                              :pretty-print true}}})
+      (wrap-cljsbuild "/cljsbuild/opt/main.js"
+                      {:auto false
+                       :log true
+                       :cljsbuild {:source-paths ["src-test"]
+                                   :compiler {:optimizations :advanced}}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)

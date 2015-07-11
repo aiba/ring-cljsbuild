@@ -90,7 +90,8 @@
     (f)))
 
 (defn wrap-cljsbuild [handler pathspec opts]
-  (let [target-dir (doto (io/file "./target") (.mkdir))
+  (let [id pathspec ;; unique identifier of this build
+        target-dir (doto (io/file "./target") (.mkdir))
         base-dir (doto (io/file target-dir "ring-cljsbuild") (.mkdir))
         [path-prefix main-js] (parse-path-spec pathspec)
         build-dir (doto (io/file base-dir (digest/md5 (pr-str [pathspec opts])))
@@ -100,15 +101,17 @@
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))
         compile! (fn []
-                   (with-message-logging (:log-messages opts)
-                     (fn [] (run-compiler! opts build-dir mtimes main-js))))]
-    (clear-watchers! (:id opts))
-    (watch-source-dirs! (:id opts)
-                        (:source-paths opts)
-                        (-> (fn []
-                              (locking lock (compile!)))
-                            (debounce 5)))
-    (future (locking lock (compile!)))
+                   (with-message-logging (:log opts)
+                     (fn [] (run-compiler!
+                            (:cljsbuild opts) build-dir mtimes main-js))))]
+    (clear-watchers! id)
+    (when (:auto opts)
+      (future (locking lock (compile!)))
+      (watch-source-dirs! id
+                          (get-in opts [:cljsbuild :source-paths])
+                          (-> (fn []
+                                (locking lock (compile!)))
+                              (debounce 5))))
     (fn [req]
       (if (.startsWith (:uri req) path-prefix)
         (locking lock
@@ -117,6 +120,8 @@
                                       (.substring (:uri req) (.length path-prefix))))
         (handler req)))))
 
+
+;; Testing —————————————————————————————————————————————————————————————————————
 (comment
 
   ((:dev @filewatchers*) 0)
