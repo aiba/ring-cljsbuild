@@ -1,9 +1,6 @@
 
 TODO:
 
-  automatically clear watches on a directory when a new one is set up
-      remove clear-builds!
-
   parallelize different builds? (compile-lock* is per wrap-cljsbuild)
 
   update readme:
@@ -32,3 +29,5 @@ X option to use clojure.toolgs.logging/with-logs
 X test source maps
 X start a compile first time immediately after wrap called.
 X strip out ANSI color sequences when using with-logs
+X automatically clear watches on a directory when a new one is set up
+X     remove clear-builds!

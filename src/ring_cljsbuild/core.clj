@@ -60,18 +60,30 @@
     [(str (string/join "/" (butlast parts)) "/")
      (last parts)]))
 
-(defn clear-builds! []
-  (filewatcher/clear-watchers!))
+(defonce ^:private filewatchers* (atom {})) ;; map id -> vec of watchers.
 
-(defn watch-source-dirs! [dirs cb]
+(defn clear-watchers! [id]
+  (swap! filewatchers*
+         (fn [watchers]
+           (doseq [w (watchers id)]
+             (println "clearing watcher for " id) ;; TODO: remove
+             (filewatcher/stop! w))
+           (assoc watchers id []))))
+
+(defn watch-source-dirs! [id dirs cb]
   (letfn [(file-event? [[_ f]]
             (and (.isFile f)
                  (not (.isHidden f))))]
     (doseq [d dirs]
-      (filewatcher/watch! d
-                          (fn [events]
-                            (when (some file-event? events)
-                              (cb)))))))
+      (let [w (filewatcher/watch! d
+                                  (fn [events]
+                                    (when (some file-event? events)
+                                      (cb))))]
+        (swap! filewatchers*
+               (fn [watchers]
+                 (update-in watchers [id]
+                            (fn [v]
+                              (vec (conj v w))))))))))
 
 (defn with-message-logging [logs? f]
   (if logs?
@@ -91,9 +103,16 @@
         compile! (fn []
                    (with-message-logging (:log-messages opts)
                      (fn [] (run-compiler! opts build-dir mtimes main-js))))]
-    (watch-source-dirs! (:source-paths opts)
+    (clear-watchers! (:id opts))
+    (watch-source-dirs! (:id opts)
+                        (:source-paths opts)
                         (-> (fn []
-                              (println "detected source path file change.")
+                              (with-message-logging (:log-messages)
+                                (println "----"
+                                         "ring-cljsbuild:"
+                                         "detected file change in profile"
+                                         (:id opts)
+                                         "----"))
                               (locking lock (compile!)))
                             (debounce 5)))
     (future (locking lock (compile!)))
