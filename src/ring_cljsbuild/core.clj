@@ -59,7 +59,7 @@
 (defn respond-with-compiled-cljs [build-dir path]
   (-> (slurp (io/file build-dir path))
       (response/response)
-      (response/content-type "application/javascript")))
+      (response/content-type "text/javascript")))
 
 (defn parse-path-spec [p]
   (let [parts (.split p "\\/")]
