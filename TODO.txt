@@ -1,6 +1,9 @@
 
 TODO: ——————————————————————————————————————————————————————————————————————————
 
+  audible warnings:
+    see :warning-handlers key of lein-cljsbuild
+
   update readme:
     mention ionotify advantage
     mention parallelizing builds?

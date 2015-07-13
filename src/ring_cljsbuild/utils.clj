@@ -1,6 +1,8 @@
 (ns ring-cljsbuild.utils
   (:require [clojure.tools.logging :as log]
-            [clojure.tools.logging.impl :as logimpl]))
+            [clojure.tools.logging.impl :as logimpl]
+            [clojure.java.io :as io])
+  (:import javax.sound.sampled.AudioSystem))
 
 (defmacro logtime [label & body]
   `(let [start# (System/currentTimeMillis)
@@ -60,8 +62,22 @@
              *err* (java.io.OutputStreamWriter. (log-stream :error ~lns))]
      (do ~@body)))
 
+(defn play-audio-clip [path]
+  (future
+    (try
+      (let [clip (AudioSystem/getClip)]
+        (.open clip (AudioSystem/getAudioInputStream (io/resource path)))
+        (.start clip)
+        (let [ms-length (/ (.getMicrosecondLength clip) 1000.0)]
+          (Thread/sleep (+ 1000 ms-length))
+          (.close clip)))
+      (catch Throwable t
+        (log/warn "error playing audio clip: " (.getMessage t))))))
 
 (comment
+
+  (play-audio-clip "ring_cljsbuild/oops.wav")
+
   ;; testing
   (binding [*out* (logging-writer "TEST")]
     (println "hello"))
