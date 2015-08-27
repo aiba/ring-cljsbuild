@@ -32,12 +32,13 @@
 
 (defn run-compiler! [opts build-dir mtimes main-js]
   (try
-    (let [emptydir (.getCanonicalPath
-                    (doto (io/file build-dir "empty") (.mkdir)))
+    (let [emptydir   (.getCanonicalPath
+                      (doto (io/file build-dir "empty") (.mkdir)))
           new-mtimes (compiler/run-compiler
                       (:source-paths opts)
-                      emptydir ;; TODO: support crossover?
-                      []       ;; TODO: support crossover?
+                      []       ;; checkout paths?
+                      emptydir ;; crossover path
+                      []       ;; crossover-macro-paths
                       (-> default-compiler-opts
                           (merge (:compiler opts))
                           (merge {:output-to (.getCanonicalPath
