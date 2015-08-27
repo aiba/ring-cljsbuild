@@ -1,13 +1,13 @@
 
 TODO: ——————————————————————————————————————————————————————————————————————————
 
+  preserve indentation of compiler errors when :java-logging true
+
   update readme:
     mention ionotify advantage
     mention parallelizing builds?
     mention logging feature
     mention auto-recompile feature
-
-  update changelog
 
 DONE: ——————————————————————————————————————————————————————————————————————————
 
@@ -30,3 +30,5 @@ X automatically clear watches on a directory when a new one is set up
 X     remove clear-builds!
 
 X parallelize different builds? (compile-lock* is per wrap-cljsbuild)
+
+X update changelog
