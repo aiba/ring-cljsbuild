@@ -5,7 +5,10 @@
             [ring.util.response :as response]
             (ring.middleware stacktrace params keyword-params reload)
             [org.httpkit.server :as httpserver]
-            [ring-cljsbuild.core :refer [wrap-cljsbuild]]))
+            [ring-cljsbuild.core :refer [wrap-cljsbuild]]
+            [clojure.java.io :as io]
+            [clj-logging-config.log4j :refer [set-loggers!]]
+            [clojure.tools.logging :as log]))
 
 (defn render-html5 [htmlv]
   (-> (hiccup/html (doctype :html5) htmlv)
@@ -29,27 +32,25 @@
 (defn make-handler []
   (-> #'app
       (wrap-cljsbuild "/cljsbuild/dev/main.js"
-                      {:auto true
-                       :log false
-                       :cljsbuild {:log-messages false
-                                   :auto-recompile true
-                                   :source-paths ["src-test"]
-                                   :incremental true
-                                   :assert true
-                                   :compiler {:optimizations :none
-                                              :cache-analysis true
-                                              :pretty-print true}}})
-      (wrap-cljsbuild "/cljsbuild/simple/main.js"
-                      {:auto false
-                       :log true
-                       :cljsbuild {:source-paths ["src-test"]
-                                   :compiler {:optimizations :simple
-                                              :pretty-print true}}})
-      (wrap-cljsbuild "/cljsbuild/opt/main.js"
-                      {:auto false
-                       :log true
-                       :cljsbuild {:source-paths ["src-test"]
-                                   :compiler {:optimizations :advanced}}})
+                      {:auto         true
+                       :java-logging false
+                       :cljsbuild    {:source-paths   ["src-test"]
+                                      :incremental    true
+                                      :assert         true
+                                      :compiler       {:optimizations :none
+                                                       :cache-analysis true
+                                                       :pretty-print true}}})
+      #_(wrap-cljsbuild "/cljsbuild/simple/main.js"
+                        {:auto      false
+                         :log       true
+                         :cljsbuild {:source-paths ["src-test"]
+                                     :compiler     {:optimizations :simple
+                                                    :pretty-print true}}})
+      #_(wrap-cljsbuild "/cljsbuild/opt/main.js"
+                        {:auto      false
+                         :log       true
+                         :cljsbuild {:source-paths ["src-test"]
+                                     :compiler     {:optimizations :advanced}}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)
@@ -64,10 +65,19 @@
            (when s (s :timeout 100))
            (httpserver/run-server (make-handler) {:port http-port*}))))
 
+(defn config-logging! []
+  (let [log-file "ring-cljsbuild-test.log"]
+    (set-loggers! :root {:level :info
+                         :out (org.apache.log4j.FileAppender.
+                               (org.apache.log4j.PatternLayout.
+                                "%d{ISO8601} %-5p %c | %m%n") log-file true)})
+    (println "logging to" log-file)))
+
 (defn -main []
+  (config-logging!)
   (restart!))
 
 (comment
-  http-stopper*
+  (-main)
   (restart!)
   )

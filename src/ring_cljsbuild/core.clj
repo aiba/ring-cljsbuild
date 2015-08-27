@@ -91,8 +91,8 @@
                             (fn [v]
                               (vec (conj v w))))))))))
 
-(defn with-message-logging [logs? f]
-  (if logs?
+(defn with-message-logging [java-logging? f]
+  (if java-logging?
     (with-logs 'ring-cljsbuild (f))
     (f)))
 
@@ -108,7 +108,7 @@
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))
         compile! (fn []
-                   (with-message-logging (:log opts)
+                   (with-message-logging (:java-logging opts)
                      (fn [] (run-compiler!
                             (:cljsbuild opts) build-dir mtimes main-js))))]
     (clear-watchers! id)
