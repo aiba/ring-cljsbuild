@@ -32,12 +32,13 @@
 
 (defn run-compiler! [opts build-dir mtimes main-js]
   (try
-    (let [emptydir (.getCanonicalPath
-                    (doto (io/file build-dir "empty") (.mkdir)))
+    (let [emptydir   (.getCanonicalPath
+                      (doto (io/file build-dir "empty") (.mkdir)))
           new-mtimes (compiler/run-compiler
                       (:source-paths opts)
-                      emptydir ;; TODO: support crossover?
-                      []       ;; TODO: support crossover?
+                      []       ;; checkout paths?
+                      emptydir ;; crossover path
+                      []       ;; crossover-macro-paths
                       (-> default-compiler-opts
                           (merge (:compiler opts))
                           (merge {:output-to (.getCanonicalPath
@@ -90,8 +91,8 @@
                             (fn [v]
                               (vec (conj v w))))))))))
 
-(defn with-message-logging [logs? f]
-  (if logs?
+(defn with-message-logging [java-logging? f]
+  (if java-logging?
     (with-logs 'ring-cljsbuild (f))
     (f)))
 
@@ -107,7 +108,7 @@
         mtimes (atom (when (.exists mtimes-file)
                        (read-string (slurp mtimes-file))))
         compile! (fn []
-                   (with-message-logging (:log opts)
+                   (with-message-logging (:java-logging opts)
                      (fn [] (run-compiler!
                             (:cljsbuild opts) build-dir mtimes main-js))))]
     (clear-watchers! id)

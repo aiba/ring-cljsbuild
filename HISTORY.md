@@ -1,4 +1,17 @@
 
+# 1.0.0 (2015-08-26)
+
+* newest lein-cljsbuild dependency
+* :java-logging true will cause compiler output to go through clojure.tools.logging
+* serves correct text/javascript mime type
+* convenient way of specifying source maps
+
+# 1.0.0-alpha1 (2015-07-07)
+
+* watch filesystem for changes when :auto true
+* log compiler errors
+* preserve cljsbuild color output
+
 # 0.3.0 (2015-01-02)
 
 * Store temp build files in target/ring-cljsbuild instead of /tmp/ring-cljsbuild.
@@ -21,4 +34,3 @@
 # 0.1.0-SNAPSHOT (2014-09-10)
 
 * Initial proof of concept.
-
