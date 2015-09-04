@@ -13,7 +13,7 @@
                  [net.incongru.watchservice/barbary-watchservice "1.0"]]
   :source-paths ["src"]
   :profiles {:dev {:source-paths ["src" "src-test"]
-                   :dependencies [[org.clojure/clojurescript "1.7.107"]
+                   :dependencies [[org.clojure/clojurescript "1.7.122"]
                                   [org.clojure/tools.logging "0.3.1"]
                                   [clj-logging-config/clj-logging-config "1.9.12"]
                                   [ring "1.4.0"]
