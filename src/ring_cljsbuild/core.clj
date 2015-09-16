@@ -58,9 +58,14 @@
       (pst+ e))))
 
 (defn respond-with-compiled-cljs [build-dir path]
-  (-> (slurp (io/file build-dir path))
-      (response/response)
-      (response/content-type "text/javascript")))
+  (let [f (io/file build-dir path)]
+    (if (.exists f)
+      (-> (slurp f)
+          (response/response)
+          (response/content-type "text/javascript"))
+      (-> (response/response "404 not found")
+          (response/content-type "text/plain")
+          (response/status 404)))))
 
 (defn parse-path-spec [p]
   (let [parts (.split p "\\/")]
@@ -123,10 +128,9 @@
       (if (.startsWith (:uri req) path-prefix)
         (locking lock
           (compile!)
-          (respond-with-compiled-cljs build-dir
-                                      (.substring (:uri req) (.length path-prefix))))
+          (respond-with-compiled-cljs
+           build-dir (.substring (:uri req) (.length path-prefix))))
         (handler req)))))
-
 
 ;; Testing —————————————————————————————————————————————————————————————————————
 (comment
