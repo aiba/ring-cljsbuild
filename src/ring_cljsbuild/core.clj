@@ -9,13 +9,19 @@
             [ring-cljsbuild.filewatcher :as filewatcher]
             [ring-cljsbuild.utils :refer [logtime with-logs debounce]]))
 
-;; calls to compile hold a lock on the destination (output) directory path.
-(defonce compile-locks* (atom {})) ;; map of String -> Object
-(defn compile-lock [dst-path]
-  (locking compile-locks*
-    (when-not (@compile-locks* dst-path)
-      (swap! compile-locks* assoc dst-path (Object.)))
-    (@compile-locks* dst-path)))
+;; NOTE: parallel cljsbuild compiliation disabled because new cljs compiler
+;; doesn't appear to be threadsafe.  Revist later.
+(comment
+  ;; calls to compile hold a lock on the destination (output) directory path.
+  (defonce compile-locks* (atom {})) ;; map of String -> Object
+  (defn compile-lock [dst-path]
+    (locking compile-locks*
+      (when-not (@compile-locks* dst-path)
+        (swap! compile-locks* assoc dst-path (Object.)))
+      (@compile-locks* dst-path))))
+
+(defonce global-compile-lock* (Object.))
+(defn compile-lock [_] global-compile-lock*)
 
 ;; See lein-cljsbuild/plugin/src/leiningen/cljsbuild/config.clj
 (def default-compiler-opts
