@@ -4,9 +4,9 @@
             [clojure.tools.logging :as log]
             [ring.util.response :as response]
             [cljsbuild.compiler :as compiler]
-            [clojure.java.io :as io]
             [digest :as digest]
             [clj-stacktrace.repl :refer [pst+]]
+            [ring-cljsbuild.jnio :as jnio]
             [ring-cljsbuild.filewatcher :as filewatcher]
             [ring-cljsbuild.utils :refer [logtime with-logs debounce]]))
 
@@ -28,21 +28,23 @@
     (assoc m :source-map (str (:output-to m) ".map"))
     (dissoc m :source-map)))
 
+(def empty-dir
+  (memoize (fn [build-dir]
+             (-> (doto (jnio/npath build-dir "empty")
+                   (jnio/mkdirs))
+                 (str)))))
+
 (defn run-compiler! [opts build-dir mtimes main-js]
   (try
-    (let [emptydir   (.getCanonicalPath
-                      (doto (io/file build-dir "empty") (.mkdir)))
-          new-mtimes (compiler/run-compiler
+    (let [new-mtimes (compiler/run-compiler
                       (:source-paths opts)
                       []    ;; checkout paths?
-                      emptydir ;; crossover path
+                      (empty-dir build-dir) ;; crossover path
                       []       ;; crossover-macro-paths
                       (-> default-compiler-opts
                           (merge (:compiler opts))
-                          (merge {:output-to (.getCanonicalPath
-                                              (io/file build-dir main-js))
-                                  :output-dir (.getCanonicalPath
-                                               (io/file build-dir "out"))})
+                          (merge {:output-to (str (jnio/npath build-dir main-js))
+                                  :output-dir (str (jnio/npath build-dir "out"))})
                           (update-source-map))
                       nil ;; notify-commnad
                       (:incremental opts)
@@ -52,15 +54,14 @@
                       )]
       (when (not= @mtimes new-mtimes)
         (reset! mtimes new-mtimes)
-        (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
+        (jnio/write-str! (jnio/npath build-dir ".last-mtimes") (pr-str @mtimes))))
     (catch Exception e
       (pst+ e))))
 
-(defn respond-with-compiled-cljs [build-dir path]
-  (let [f (io/file build-dir path)]
-    (if (.exists f)
-      ;; TODO: this slurp is a little slow.
-      (-> (slurp f)
+(defn respond-with-compiled-cljs [^String build-dir ^String path]
+  (let [p (jnio/npath build-dir path)]
+    (if (jnio/exists? p)
+      (-> (jnio/input-stream p)
           (response/response)
           (response/content-type "text/javascript"))
       (-> (response/response "404 not found")
@@ -103,15 +104,17 @@
 
 (defn wrap-cljsbuild [handler pathspec opts]
   (let [id pathspec ;; unique identifier of this build
-        target-dir (doto (io/file "./target") (.mkdir))
-        base-dir (doto (io/file target-dir "ring-cljsbuild") (.mkdir))
+        target-dir (doto (jnio/npath "." "target")
+                     (jnio/mkdirs))
+        base-dir (doto (jnio/npath target-dir "ring-cljsbuild")
+                   (jnio/mkdirs))
         [path-prefix main-js] (parse-path-spec pathspec)
-        build-dir (doto (io/file base-dir (digest/md5 (pr-str [pathspec opts])))
-                    (.mkdir))
-        lock (compile-lock (.getCanonicalPath build-dir))
-        mtimes-file (io/file build-dir ".last-mtimes")
-        mtimes (atom (when (.exists mtimes-file)
-                       (read-string (slurp mtimes-file))))
+        build-dir (doto (jnio/npath base-dir (digest/md5 (pr-str [pathspec opts])))
+                    (jnio/mkdirs))
+        lock (compile-lock (str (jnio/npath build-dir ".")))
+        mtimes (let [p (jnio/npath build-dir ".last-mtimes")]
+                 (atom (when (jnio/exists? p)
+                         (read-string (String. (jnio/read-bytes p))))))
         compile! (fn []
                    (with-message-logging (:java-logging opts)
                      (fn [] (run-compiler!
@@ -134,9 +137,7 @@
 
 ;; Testing —————————————————————————————————————————————————————————————————————
 (comment
-
   ((:dev @filewatchers*) 0)
-
   (log/info "hello")
-
+  (empty-dir "/tmp/empty")
   )
