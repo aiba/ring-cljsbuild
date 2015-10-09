@@ -12,40 +12,41 @@
 
 ;; NOTE: parallel cljsbuild compiliation disabled because new cljs compiler
 ;; doesn't appear to be threadsafe.  Revist later.
-(defonce global-compile-lock* (Object.))
-(defn compile-lock [_] global-compile-lock*)
+(defonce ^:private global-compile-lock* (Object.))
+(defn ^:private compile-lock [_] global-compile-lock*)
 
 ;; See lein-cljsbuild/plugin/src/leiningen/cljsbuild/config.clj
-(def default-compiler-opts
+(def ^:private default-compiler-opts
   {:optimizations :whitespace
    :libs          []
    :externs       []
    :warnings      true
    :pretty-print  false})
 
-(defn update-source-map [m]
-  (if (:source-map m)
+(defn- update-source-map [m sm?]
+  (if sm?
     (assoc m :source-map (str (:output-to m) ".map"))
     (dissoc m :source-map)))
 
-(def empty-dir
+(def ^:private empty-dir
   (memoize (fn [build-dir]
              (-> (doto (jnio/npath build-dir "empty")
                    (jnio/mkdirs))
                  (str)))))
 
-(defn run-compiler! [opts build-dir mtimes main-js]
+(defn- run-compiler! [opts build-dir mtimes main-js source-map?]
   (try
-    (let [new-mtimes (compiler/run-compiler
+    (let [full-opts (-> default-compiler-opts
+                        (merge (:compiler opts))
+                        (merge {:output-to (str (jnio/npath build-dir main-js))
+                                :output-dir (str (jnio/npath build-dir "out"))})
+                        (update-source-map source-map?))
+          new-mtimes (compiler/run-compiler
                       (:source-paths opts)
                       []    ;; checkout paths?
                       (empty-dir build-dir) ;; crossover path
                       []       ;; crossover-macro-paths
-                      (-> default-compiler-opts
-                          (merge (:compiler opts))
-                          (merge {:output-to (str (jnio/npath build-dir main-js))
-                                  :output-dir (str (jnio/npath build-dir "out"))})
-                          (update-source-map))
+                      full-opts
                       nil ;; notify-commnad
                       (:incremental opts)
                       (:assert opts)
@@ -57,16 +58,6 @@
         (jnio/write-str! (jnio/npath build-dir ".last-mtimes") (pr-str @mtimes))))
     (catch Exception e
       (pst+ e))))
-
-(defn respond-with-compiled-cljs [^String build-dir ^String path]
-  (let [p (jnio/npath build-dir path)]
-    (if (jnio/exists? p)
-      (-> (jnio/input-stream p)
-          (response/response)
-          (response/content-type "text/javascript"))
-      (-> (response/response "404 not found")
-          (response/content-type "text/plain")
-          (response/status 404)))))
 
 (defn parse-path-spec [p]
   (let [parts (.split p "\\/")]
@@ -117,8 +108,11 @@
                          (read-string (String. (jnio/read-bytes p))))))
         compile! (fn []
                    (with-message-logging (:java-logging opts)
-                     (fn [] (run-compiler!
-                            (:cljsbuild opts) build-dir mtimes main-js))))]
+                     (fn [] (run-compiler! (:cljsbuild opts)
+                                          build-dir
+                                          mtimes
+                                          main-js
+                                          (:public-source-map opts)))))]
     (clear-watchers! id)
     (when (:auto opts)
       (future (locking lock (compile!)))
@@ -128,12 +122,21 @@
                                 (locking lock (compile!)))
                               (debounce 5))))
     (fn [req]
-      (if (.startsWith (:uri req) path-prefix)
-        (locking lock
-          (compile!)
-          (respond-with-compiled-cljs
-           build-dir (.substring (:uri req) (.length path-prefix))))
-        (handler req)))))
+      (if-not (.startsWith (:uri req) path-prefix)
+        (handler req)
+        (let [relpath (.substring (:uri req) (.length path-prefix))
+              p       (jnio/npath build-dir relpath)]
+          (locking lock
+            (compile!)
+            (if (and (jnio/exists? p)
+                     (or (= (:uri req) pathspec)
+                         (:public-source-map opts)))
+              (-> (jnio/input-stream p)
+                  (response/response)
+                  (response/content-type "text/javascript"))
+              (-> (response/response "404 not found")
+                  (response/content-type "text/plain")
+                  (response/status 404)))))))))
 
 ;; Testing —————————————————————————————————————————————————————————————————————
 (comment
