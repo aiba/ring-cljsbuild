@@ -89,3 +89,5 @@
   (clear-watchers!)
 
   )
+
+;; See also https://github.com/juergenhoetzel/clj-nio2
