@@ -1,6 +1,7 @@
 (ns ring-cljsbuild.core
   (:require [clojure.string :as string]
             [clojure.pprint :refer [pprint]]
+            [clojure.tools.logging :as log]
             [ring.util.response :as response]
             [cljsbuild.compiler :as compiler]
             [clojure.java.io :as io]
@@ -11,25 +12,16 @@
 
 ;; NOTE: parallel cljsbuild compiliation disabled because new cljs compiler
 ;; doesn't appear to be threadsafe.  Revist later.
-(comment
-  ;; calls to compile hold a lock on the destination (output) directory path.
-  (defonce compile-locks* (atom {})) ;; map of String -> Object
-  (defn compile-lock [dst-path]
-    (locking compile-locks*
-      (when-not (@compile-locks* dst-path)
-        (swap! compile-locks* assoc dst-path (Object.)))
-      (@compile-locks* dst-path))))
-
 (defonce global-compile-lock* (Object.))
 (defn compile-lock [_] global-compile-lock*)
 
 ;; See lein-cljsbuild/plugin/src/leiningen/cljsbuild/config.clj
 (def default-compiler-opts
   {:optimizations :whitespace
-   :libs []
-   :externs []
-   :warnings true
-   :pretty-print true})
+   :libs          []
+   :externs       []
+   :warnings      true
+   :pretty-print  false})
 
 (defn update-source-map [m]
   (if (:source-map m)
@@ -42,7 +34,7 @@
                       (doto (io/file build-dir "empty") (.mkdir)))
           new-mtimes (compiler/run-compiler
                       (:source-paths opts)
-                      []       ;; checkout paths?
+                      []    ;; checkout paths?
                       emptydir ;; crossover path
                       []       ;; crossover-macro-paths
                       (-> default-compiler-opts
@@ -58,14 +50,16 @@
                       @mtimes
                       false ;; don't run forever watching the build
                       )]
-      (reset! mtimes new-mtimes)
-      (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes)))
+      (when (not= @mtimes new-mtimes)
+        (reset! mtimes new-mtimes)
+        (spit (io/file build-dir ".last-mtimes") (pr-str @mtimes))))
     (catch Exception e
       (pst+ e))))
 
 (defn respond-with-compiled-cljs [build-dir path]
   (let [f (io/file build-dir path)]
     (if (.exists f)
+      ;; TODO: this slurp is a little slow.
       (-> (slurp f)
           (response/response)
           (response/content-type "text/javascript"))
@@ -142,5 +136,7 @@
 (comment
 
   ((:dev @filewatchers*) 0)
+
+  (log/info "hello")
 
   )
