@@ -27,9 +27,13 @@
                  (str)))))
 
 (defn- update-source-map [m sm?]
-  (if sm?
-    (assoc m :source-map (str (:output-to m) ".map"))
-    (dissoc m :source-map)))
+  ;; See https://github.com/clojure/clojurescript/wiki/Compiler-Options
+  ;; for weird way they do this.
+  (let [optlevel (:optimizations m)]
+    (cond
+      (= optlevel :none) (assoc m :source-map (boolean sm?))
+      sm?                (assoc m :source-map (str (:output-to m) ".map"))
+      :else              (dissoc m :source-map))))
 
 (defmacro ^:private with-message-logging [java-logging? & body]
   `(if ~java-logging?
@@ -99,8 +103,9 @@
             (jnio/npath build-dir mainjs)))))
      :file-bytes-fn
      (fn [relpath]
-       (jnio/cached-file-bytes
-        (jnio/npath build-dir relpath)))}))
+       (let [p (jnio/npath build-dir relpath)]
+         (when (jnio/exists? p)
+           (jnio/cached-file-bytes p))))}))
 
 (defn compile! [{:keys [compile-fn]}]
   (locking global-compile-lock*
