@@ -3,7 +3,8 @@
             [clj-stacktrace.repl :refer [pst+]]
             [cljsbuild.compiler :as compiler]
             [ring-cljsbuild.jnio :as jnio]
-            [ring-cljsbuild.utils :refer [logtime with-logs]]))
+            [ring-cljsbuild.utils :refer [logtime with-logs]]
+            [digest :as digest]))
 
 ;; NOTE: parallel cljsbuild compiliation disabled because new cljs compiler
 ;; doesn't appear to be threadsafe.  Revist later.
@@ -123,6 +124,10 @@
                                                   (str main-file-name
                                                        ".map")))))}))
 
+(defn compile! [{:keys [compile-fn]}]
+  (locking global-compile-lock*
+    (compile-fn)))
+
 (defn get-js [{:keys [compile-fn js-fn]}]
   (locking global-compile-lock*
     (compile-fn)
@@ -137,3 +142,8 @@
 (comment
 
   )
+
+;; TODO:
+;; - keep bytes in ram
+;; - js-hash
+
