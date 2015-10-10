@@ -98,7 +98,7 @@
        (let [optlevel (get-in build-spec [:cljsbuild :compiler :optimizations])
              mainjs   (get-in build-spec [:main-js-name] default-main-js-name)]
          (if (= optlevel :none)
-           (logtime "md5 of mtimes" (digest/md5 (pr-str @mtimes)))
+           (digest/md5 (apply str @mtimes))
            (jnio/cached-file-md5
             (jnio/npath build-dir mainjs)))))
      :file-bytes-fn
@@ -122,15 +122,3 @@
   (locking global-compile-lock*
     (compile-fn)
     (file-bytes-fn relpath)))
-
-;; Testing —————————————————————————————————————————————————————————————————————
-
-(comment
-
-  )
-
-;; TODO:
-;; - js-hash and caching
-;; - reincorporate auto-filesystem-watching
-;; - get source maps working again
-;; - keep bytes in ram?
