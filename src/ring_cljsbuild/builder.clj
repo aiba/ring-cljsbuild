@@ -1,10 +1,11 @@
 (ns ring-cljsbuild.builder
   (:require [clojure.tools.logging :as log]
+            [digest :as digest]
             [clj-stacktrace.repl :refer [pst+]]
             [cljsbuild.compiler :as compiler]
             [ring-cljsbuild.jnio :as jnio]
-            [ring-cljsbuild.utils :refer [logtime with-logs]]
-            [digest :as digest]))
+            [ring-cljsbuild.utils :refer [logtime with-logs debounce]]
+            [ring-cljsbuild.filewatcher :as filewatcher]))
 
 ;; NOTE: parallel cljsbuild compiliation disabled because new cljs compiler
 ;; doesn't appear to be threadsafe.  Revist later.
@@ -51,26 +52,28 @@
                           (update-source-map (:source-map build-spec)))
         incremental?  (get-in build-spec [:cljsbuild :incremental])
         assert?       (get-in build-spec [:cljsbuild :assert])]
-    (fn []
-      (with-message-logging (:java-logging build-spec)
-        (try
-          (let [mtimes' (compiler/run-compiler src-paths
-                                               [] ;; checkout paths?
-                                               xover ;; crossover path
-                                               [] ;; crossover-macro-paths
-                                               compiler-opts
-                                               nil ;; notify-command
-                                               incremental?
-                                               assert?
-                                               @mtimes
-                                               false ;; dont run forever watching
-                                               )]
-            (when (not= @mtimes mtimes')
-              (reset! mtimes mtimes')
-              (jnio/write-str! (jnio/npath build-dir mtimes-file-name)
-                               (pr-str @mtimes))))
-          (catch Throwable t
-            (pst+ t)))))))
+    (fn [& [on-success]]
+      (locking global-compile-lock*
+        (with-message-logging (:java-logging build-spec)
+          (try
+            (let [mtimes' (compiler/run-compiler src-paths
+                                                 [] ;; checkout paths?
+                                                 xover ;; crossover path
+                                                 [] ;; crossover-macro-paths
+                                                 compiler-opts
+                                                 nil ;; notify-command
+                                                 incremental?
+                                                 assert?
+                                                 @mtimes
+                                                 false ;; dont run forever watching
+                                                 )]
+              (when (not= @mtimes mtimes')
+                (reset! mtimes mtimes')
+                (jnio/write-str! (jnio/npath build-dir mtimes-file-name)
+                                 (pr-str @mtimes))))
+            (when-let [f on-success] (f))
+            (catch Throwable t
+              (pst+ t))))))))
 
 (defn- gen-build-dir [build-spec]
   (doto (jnio/npath "."
@@ -84,15 +87,49 @@
     (atom (when (jnio/exists? p)
             (read-string (String. (jnio/read-bytes p)))))))
 
+;; Watching files ——————————————————————————————————————————————————————————————
+
+(defonce ^:private filewatchers* (atom {})) ;; map id -> vec of watchers.
+
+(defn clear-watchers! [id]
+  (swap! filewatchers*
+         (fn [watchers]
+           (doseq [w (watchers id)]
+             (filewatcher/stop! w))
+           (assoc watchers id []))))
+
+(defn watch-source-dirs! [id dirs cb]
+  (letfn [(file-event? [[_ f]]
+            (and (.isFile f)
+                 (not (.isHidden f))))]
+    (doseq [d dirs]
+      (let [w (filewatcher/watch! d
+                                  (fn [events]
+                                    (when (some file-event? events)
+                                      (cb))))]
+        (swap! filewatchers*
+               (fn [watchers]
+                 (update-in watchers [id]
+                            (fn [v]
+                              (vec (conj v w))))))))))
+
 ;; API —————————————————————————————————————————————————————————————————————————
 
 (defn new-builder [build-spec]
-  (when-not (:id build-spec)
-    (throw (IllegalArgumentException. "build-spec must contain :id key")))
-  (let [build-dir (gen-build-dir build-spec)
-        mtimes    (gen-mtimes build-dir)]
+  (let [id        (:id build-spec)
+        build-dir (gen-build-dir build-spec)
+        mtimes    (gen-mtimes build-dir)
+        compile!  (gen-compile-fn build-spec build-dir mtimes)]
+    (when-not id
+      (throw (IllegalArgumentException. "build-spec must contain :id key")))
+    (clear-watchers! id)
+    (when (:auto build-spec)
+      (future (compile!))
+      (watch-source-dirs! id
+                          (get-in build-spec [:cljsbuild :source-paths])
+                          (debounce #(compile!) 100)))
     {:compile-fn
-     (gen-compile-fn build-spec build-dir mtimes)
+     compile!
      :digest-fn
      (fn []
        (let [optlevel (get-in build-spec [:cljsbuild :compiler :optimizations])
@@ -108,17 +145,12 @@
            (jnio/cached-file-bytes p))))}))
 
 (defn compile! [{:keys [compile-fn]}]
-  (locking global-compile-lock*
-    (compile-fn)))
+  (compile-fn))
 
 ;; Digest of the WHOLE compile.  If any part of the compile changes, then
 ;; digest changes.
 (defn get-build-digest [{:keys [compile-fn digest-fn]}]
-  (locking global-compile-lock*
-    (compile-fn)
-    (digest-fn)))
+  (compile-fn #(digest-fn)))
 
 (defn get-file-bytes [{:keys [compile-fn file-bytes-fn]} relpath]
-  (locking global-compile-lock*
-    (compile-fn)
-    (file-bytes-fn relpath)))
+  (compile-fn #(file-bytes-fn relpath)))
