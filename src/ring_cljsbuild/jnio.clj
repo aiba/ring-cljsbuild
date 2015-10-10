@@ -6,10 +6,10 @@
                           LinkOption)
            (java.nio.file.attribute FileAttribute)))
 
-(defn npath [dir ^String p]
+(defn npath [dir & ps]
   (.normalize
    (Paths/get (str dir)
-              (into-array [p]))))
+              (into-array ps))))
 
 (defn mkdirs [^Path p]
   (Files/createDirectories p (into-array FileAttribute [])))
@@ -28,8 +28,9 @@
 
 ;; Testing —————————————————————————————————————————————————————————————————————
 (comment
-  (write-str! (npath "/tmp/" "x") "hello again.")
-  (exists? (npath "/tmp/x" "x"))
+  (write-str! (npath "/tmp/" "d" "foo") "hello again.")
+  (exists? (npath "/tmp" "d" "foo"))
+  (mkdirs (npath "/tmp" "d" "foo" "bar"))
   (str (npath "/tmp" "."))
   (let [p (npath "/tmp/" "data.clj")]
     (write-str! p "{:a 1}")
