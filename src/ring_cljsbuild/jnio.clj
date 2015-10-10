@@ -1,4 +1,6 @@
 (ns ring-cljsbuild.jnio
+  (:require [clojure.tools.logging :as log]
+            [digest :as digest])
   (:import (java.nio.file Files
                           Paths
                           Path
