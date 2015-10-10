@@ -43,7 +43,6 @@
   (let [{:keys [mtime]} (@cache* p)
         mtime'          (last-modified p)]
     (when (not= mtime mtime')
-      (clojure.tools.logging/info "reading" (str p))
       (let [b (read-bytes p)]
         (swap! cache* assoc p {:mtime mtime'
                                :bytes b
