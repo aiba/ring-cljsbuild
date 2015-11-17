@@ -1,4 +1,4 @@
-(defproject ring-cljsbuild "2.0.0"
+(defproject ring-cljsbuild "2.0.1"
   :description "ClojureScript compiler as ring middleware"
   :url "https://github.com/aiba/ring-cljsbuild"
   :license {:name "Eclipse Public License - v 1.0"
