@@ -17,40 +17,31 @@
       (response/charset "utf-8")))
 
 (defn app [req]
-  (let [dev? (nil? (-> req :params :opt))
-        ijs (fn [p] (include-js (format "/cljsbuild/%s/%s" (if dev? "dev" "opt") p)))]
-    (render-html5
-     [:html
-      [:head]
-      [:body
-       [:div#main "loading..."]
-       (when dev? (ijs "out/goog/base.js"))
-       (ijs "main.js")
-       (when dev? (javascript-tag "goog.require('ring_cljsbuild.test.client');"))
-       (javascript-tag "ring_cljsbuild.test.client.main();")]])))
+  (render-html5
+   [:html
+    [:head]
+    [:body
+     [:div#main "loading..."]
+     (include-js "/cljsbuild/app.js")
+     (javascript-tag "ring_cljsbuild.test.client.main();")]]))
 
 (defn make-handler []
   (-> #'app
-      (wrap-cljsbuild "/cljsbuild/dev/main.js"
-                      {:auto         true
+      (wrap-cljsbuild "/cljsbuild/app.js"
+                      {:id           :ws
+                       :auto         true
                        :java-logging false
-                       :cljsbuild    {:source-paths   ["src-test"]
-                                      :incremental    true
-                                      :assert         true
-                                      :compiler       {:optimizations :none
-                                                       :cache-analysis true
-                                                       :pretty-print true}}})
-      #_(wrap-cljsbuild "/cljsbuild/simple/main.js"
-                        {:auto      false
-                         :log       true
-                         :cljsbuild {:source-paths ["src-test"]
-                                     :compiler     {:optimizations :simple
-                                                    :pretty-print true}}})
-      #_(wrap-cljsbuild "/cljsbuild/opt/main.js"
-                        {:auto      false
-                         :log       true
-                         :cljsbuild {:source-paths ["src-test"]
-                                     :compiler     {:optimizations :advanced}}})
+                       :main-js-name "main.js"
+                       :source-map   false
+                       :cljsbuild    {:source-paths ["src-test"]
+                                      :incremental true
+                                      :assert true
+                                      :compiler {:optimizations :whitespace
+                                                 :pretty-print false
+                                                 :cache-analysis true
+                                                 :warnings true
+                                                 :preamble []
+                                                 :externs []}}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)
