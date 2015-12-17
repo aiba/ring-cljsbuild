@@ -41,8 +41,7 @@
                                                  :warnings true
                                                  :preamble []
                                                  :externs []
-                                                 :main "ring-cljsbuild.test.client"
-                                                 :asset-path "/cljsbuild/out"}}})
+                                                 :main "ring-cljsbuild.test.client"}}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)
