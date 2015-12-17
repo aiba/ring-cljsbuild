@@ -14,13 +14,11 @@
                       (butlast $)
                       (string/join "/" $)
                       (str $ "/"))]
-    (log/info "path-prefix:" path-prefix)
     (fn [req]
       (if-not (.startsWith (:uri req) path-prefix)
         (handler req)
         (let [relpath (as-> (:uri req) $
                         (.substring $ (.length path-prefix)))
-              _       (log/info "relpath:" relpath)
               data    (builder/get-file-bytes builder relpath)]
           (-> (java.io.ByteArrayInputStream. data)
               (response/response)
