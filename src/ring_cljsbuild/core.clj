@@ -4,8 +4,6 @@
             [ring.util.response :as response]
             [ring-cljsbuild.builder :as builder]))
 
-;; TODO: call handler when relpath not found, rather than 500 error.
-
 (defn wrap-cljsbuild [handler urlpath build-spec]
   (let [path-prefix (as-> urlpath $
                       (string/split $ #"/")
@@ -25,6 +23,8 @@
         (let [relpath (as-> (:uri req) $
                         (.substring $ (.length path-prefix)))
               data    (builder/get-file-bytes builder relpath)]
-          (-> (java.io.ByteArrayInputStream. data)
-              (response/response)
-              (response/content-type "text/javascript")))))))
+          (if-not data
+            (handler req)
+            (-> (java.io.ByteArrayInputStream. data)
+                (response/response)
+                (response/content-type "text/javascript"))))))))
