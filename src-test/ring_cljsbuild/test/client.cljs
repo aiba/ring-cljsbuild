@@ -1,6 +1,8 @@
 (ns ring-cljsbuild.test.client)
 
-(defn ^:export main []
+(defn main []
   (aset (js/document.getElementById "main") "innerHTML" "Hello clojurescript!"))
+
+(main)
 
 ;; foo

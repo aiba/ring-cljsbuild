@@ -4,6 +4,9 @@
             [ring.util.response :as response]
             [ring-cljsbuild.builder :as builder]))
 
+;; TODO: automatically set asset-path
+;; TODO: call handler when relpath not found, rather than 500 error.
+
 (defn wrap-cljsbuild [handler urlpath build-spec]
   (let [builder     (builder/new-builder build-spec)
         path-prefix (as-> urlpath $

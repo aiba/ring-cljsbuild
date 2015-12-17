@@ -22,8 +22,7 @@
     [:head]
     [:body
      [:div#main "loading..."]
-     (include-js "/cljsbuild/app.js")
-     (javascript-tag "ring_cljsbuild.test.client.main();")]]))
+     (include-js "/cljsbuild/app.js")]]))
 
 (defn make-handler []
   (-> #'app
@@ -31,7 +30,7 @@
                       {:id           :ws
                        :auto         true
                        :java-logging false
-                       :main-js-name "main.js"
+                       :main-js-name "app.js"
                        :source-map   false
                        :cljsbuild    {:source-paths ["src-test"]
                                       :incremental true
@@ -41,7 +40,9 @@
                                                  :cache-analysis true
                                                  :warnings true
                                                  :preamble []
-                                                 :externs []}}})
+                                                 :externs []
+                                                 :main "ring-cljsbuild.test.client"
+                                                 :asset-path "/cljsbuild/out"}}})
       (ring.middleware.keyword-params/wrap-keyword-params)
       (ring.middleware.params/wrap-params)
       (ring.middleware.reload/wrap-reload)
