@@ -36,7 +36,7 @@
                        :cljsbuild    {:source-paths ["src-test"]
                                       :incremental true
                                       :assert true
-                                      :compiler {:optimizations :whitespace
+                                      :compiler {:optimizations :none
                                                  :pretty-print false
                                                  :cache-analysis true
                                                  :warnings true
@@ -69,6 +69,7 @@
   (restart!))
 
 (comment
+  (log/info "hello")
   (-main)
   (restart!)
   )
