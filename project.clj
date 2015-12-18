@@ -1,9 +1,11 @@
-(defproject ring-cljsbuild "2.1.1"
+(defproject ring-cljsbuild "2.1.3"
   :description "ClojureScript compiler as ring middleware"
   :url "https://github.com/aiba/ring-cljsbuild"
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo}
+  :deploy-repositories [["clojars" {:url "https://clojars.org/repo/"
+                                    :sign-releases false}]]
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/tools.logging "0.3.1"]

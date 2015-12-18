@@ -22,15 +22,15 @@
     [:head]
     [:body
      [:div#main "loading..."]
-     (include-js "/cljsbuild/app.js")]]))
+     (include-js "/cljsbuild/main.js")]]))
 
 (defn make-handler []
   (-> #'app
-      (wrap-cljsbuild "/cljsbuild/app.js"
+      (wrap-cljsbuild "/cljsbuild/"
                       {:id           :ws
                        :auto         true
                        :java-logging false
-                       :main-js-name "app.js"
+                       :main-js-name "main.js"
                        :source-map   false
                        :cljsbuild    {:source-paths ["src-test"]
                                       :incremental true

@@ -4,12 +4,10 @@
             [ring.util.response :as response]
             [ring-cljsbuild.builder :as builder]))
 
-(defn wrap-cljsbuild [handler urlpath build-spec]
-  (let [path-prefix (as-> urlpath $
-                      (string/split $ #"/")
-                      (butlast $)
-                      (string/join "/" $)
-                      (str $ "/"))
+(defn wrap-cljsbuild [handler path-prefix build-spec]
+  (let [path-prefix (if (.endsWith path-prefix "/")
+                      path-prefix
+                      (str path-prefix "/"))
         build-spec (update-in build-spec [:cljsbuild :compiler]
                               (fn [m]
                                 (if (and (= (:optimizations m) :none)
