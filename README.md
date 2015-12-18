@@ -5,26 +5,27 @@ directly from your ring-clojure webserver, instead of requiring a separate lein 
 and separate JVM as [lein-cljsbuild](https://github.com/emezeske/lein-cljsbuild) does.
 
 Under the hood, it uses the same cljsbuild library that lein-cljsbuild uses, so
-compiler options are specified in the exact same way.
+compiler options are specified in the exact same way. In addition, there are
+ring-cljsbuild specific options.
 
 ## Benefits (vs. lein-cljsbuild)
 
 * No extra JVM process / terminal window.
 * cljsbuild configuration changes do not require a JVM restart.
-* cljs compiler errors logged in same place as server-side errors, so there are fewer
-  terminal windows to monitor.
 * HTTP requests are blocked until cljs compiler is done, so you can be certain
   the client received the latest compiled js.
 * cljs compiler options can live in same file that serves and calls the resultant js.
-  See e.g. [server.clj](example-projects/basic/src-clj/basic/server.clj).
+  See e.g. [server.clj](src-test/ring_cljsbuild/test/server.clj).
+* (optional) log4j logging so cljs compiler errors logged in same place as
+  server-side errors, so there are fewer terminal windows to monitor.
+* (on supported systems) uses modern inotify API so file changes are instantly
+  detected and recompilation is kicked off, rather than polling every 100ms as
+  lein-cljsbuild does.
 
 ## Drawbacks
 
 * It slightly bloats the server because it adds all the ClojureScript compiler code as a
   dependency.
-* It doesn't recompile clojurescript until your browser reloads the page, so this could
-  delay feedback about a compiler error. (The flip side of this is that it can reduce
-  unecessary compiles).
 
 ## Usage
 
@@ -34,7 +35,7 @@ also want to add a specific clojurescript version dependency.
 ```clj
 (defproject my-project "0.0.1"
   :dependencies [[org.clojure/clojurescript "0.0-XXXX"]]
-                 [ring-cljsbuild "0.3.0"]])
+                 [ring-cljsbuild "X.X.X"]])
 ```
 
 Next require `wrap-cljsbuild` middleware.
@@ -49,17 +50,29 @@ Then add a call to `wrap-cljsbuild`.
 ```clj
 (def app
   (-> #'handler
-      (wrap-cljsbuild "/cljsbuild/" {:source-paths ["src-cljs"]
-                                     :incremental true
-                                     :compiler {:optimizations :none
-                                                :cache-analysis true}})))
+      (wrap-cljsbuild "/cljsbuild/"
+                      {:id :myapp
+                       :auto true ;; recompile when files change on disk
+                       :java-logging false ;; log to stdout instead of log4j
+                       :main-js-name "main.js"
+                       :source-map true
+                       :cljsbuild {:source-paths ["src-cljs"]
+                                   :incremental true
+                                   :compiler {:optimizations :none
+                                              :cache-analysis true
+                                              :pretty-print false
+                                              :warnings true
+                                              :main "ring-cljsbuild.test.client"}}))))
 ```
 
 The first arg to `wrap-cljsbuild` is the URL prefix from which the compiled javascript
 will be served. Here the webserver will respond to "GET /cljsbuild/main.js" with the
 output of the clojurescript compiler.
 
-The second arg is the same build spec that lein-cljsbuild uses.
+The second arg is a map of options. Within this map, :cljsbuild takes arguments
+the same way lein-cljsbuild does, and within that, :compiler takes a map of
+options
+[documented here](https://github.com/clojure/clojurescript/wiki/Compiler-Options).
 
 Finally, render a page that references the javascript.
 
@@ -67,25 +80,24 @@ Finally, render a page that references the javascript.
 (defn render-index [req]
   (html5
     [:body
-     (include-js "/cljsbuild/out/goog/base.js")
      (include-js "/cljsbuild/main.js")]))
 ```
 
-## Example
+<!-- ## Example -->
 
-The [basic example server](example-projects/basic/src-clj/basic/server.clj) shows
-having a ring webserver and clojurescript compiler in 1 file.
+<!-- The [basic example server](example-projects/basic/src-clj/basic/server.clj) shows -->
+<!-- having a ring webserver and clojurescript compiler in 1 file. -->
 
-You can try it out:
+<!-- You can try it out: -->
 
-```
-$ git clone https://github.com/aiba/ring-cljsbuild.git
-$ cd ring-cljsbuild/example-projects/basic
-$ lein run -m basic.server 8888
-```
+<!-- ``` -->
+<!-- $ git clone https://github.com/aiba/ring-cljsbuild.git -->
+<!-- $ cd ring-cljsbuild/example-projects/basic -->
+<!-- $ lein run -m basic.server 8888 -->
+<!-- ``` -->
 
-Now visit http://localhost:8888/. As you edit either `server.clj` or
-`client.cljs` and reload the page, your changes will be automatically recompiled.
+<!-- Now visit http://localhost:8888/. As you edit either `server.clj` or -->
+<!-- `client.cljs` and reload the page, your changes will be automatically recompiled. -->
 
 ## Advanced compilation
 
@@ -96,12 +108,8 @@ looking at a URL parameter. (TODO: provide example of this).
 
 ## Implementation Issues
 
-* Crossovers are not supported (but these seem to be a deprecated concept anyway).
-* The compiler prints to stdout, but arguably this is an issue with the cljsbuild
-  library. (Library functions probably shouldn't print to stdout). We could try wrapping
-  this in `with-out-str` and use clojure.tools.logging.
-* The `:output-to` filename is hard-coded to `"main.js"`. Perhaps this should be
-  configurable.
+* Crossovers are not supported (but these seem to be a deprecated concept
+  anyway).  cljc works fine.
 
 ## Related work and discussion
 
